@@ -1,7 +1,8 @@
 class Ball():
-    def __init__(self, x, y, radius, color, speed):
+    def __init__(self, x, y, speed, color, points):
         self.x = x
         self.y = y
-        self.radius = radius
         self.color = color
         self.speed = speed
+        self.points = points
+
