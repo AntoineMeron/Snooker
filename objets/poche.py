@@ -10,7 +10,7 @@ class Poche:
 
     """
 
-    def __init__(self, position_id:str,x:float,y:float)->None:
+    def __init__(self, position_id:str,x:float,y:float,rayon:float)->None:
         """
         Initialisation de la poche
 
@@ -25,7 +25,7 @@ class Poche:
         """
         self.position_id = position_id
         self.pos = np.ndarray([x,y], dtype=float)
-        self.rayon = 4.5 #cm
+        self.rayon = rayon
 
     def contains(self, ball)->bool:
         """
