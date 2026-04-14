@@ -44,14 +44,14 @@ class Ball:
         self.vit = np.zeros(2, dtype=float)
         self.is_potted = False
 
-        def __repr__(self) -> str:
-            """
-            Méthode spéciale qui définit la représentation officielle d’un objet sous forme de chaîne de caractères.
-            """
-            return (
-                f"Ball(id={self.id}, color='{self.color}', "
-                f"pos=({self.pos[0]:.1f}, {self.pos[1]:.1f}), "
-                f"vel=({self.vel[0]:.2f}, {self.vel[1]:.2f}), "
-                f"potted={self.is_potted})"
-            )
+    def __repr__(self) -> str:
+        """
+        Méthode spéciale qui définit la représentation officielle d’un objet sous forme de chaîne de caractères.
+        """
+        return (
+            f"Ball(id={self.id}, color='{self.color}', "
+            f"pos=({self.pos[0]:.1f}, {self.pos[1]:.1f}), "
+            f"vel=({self.vel[0]:.2f}, {self.vel[1]:.2f}), "
+            f"potted={self.is_potted})"
+        )
 
