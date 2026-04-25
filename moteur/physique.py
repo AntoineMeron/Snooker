@@ -21,8 +21,9 @@ class Physique :
     faire docstring tu connais
     """
 
-    def __init__(self, dt:float = 1/60)->None:
+    def __init__(self, table : Tables, dt:float = 1/60)->None:
         self.dt = dt
+        self.table = table #attribut car permanent
 
     def apply_shot(self, ball : Ball, angle_deg : float, force : float)-> None :
         """
@@ -60,7 +61,7 @@ class Physique :
             ball.vit=np.zeros(2, dtype=float)
             return
 
-        ball.pos *= ball.vit*self.dt
+        ball.pos += ball.vit*self.dt
 
         #On réduit la vitesse à chaque dt avec le coef de friction
         ball.vit *= self.table.friction_coef ** self.dt #permet que le ralentissement soit le même quelque soit le dt choisi, sinon, la bille freinera 2 fois moins vite en mettant dt=1/30 au lieu de dt= 1/60
@@ -74,43 +75,89 @@ class Physique :
         :return:
         """
 
-        delta = b1.pos - b2.pos
+        delta = b2.pos - b1.pos
         dist = float(np.linalg.norm(delta))
         min_dist = b1.rayon + b2.rayon
 
         #1er cas : les billes ne se touchent pas
         if dist==0 or dist >= min_dist: #dist=0 pour éviter la division par 0 en dessous
             return
-        #A FINIR
 
+        normal = delta / dist         # vecteur unitaire de b1 vers b2
+        overlap = min_dist - dist     # combien les billes se chevauchent
 
+        # On recule chaque bille de la moitié du chevauchement
+        b1.pos -= normal * (overlap / 2)
+        b2.pos += normal * (overlap / 2)
+
+        # Échange des vitesses selon l'axe de collision (collision élastique, masses égales)
+        v1n = np.dot(b1.vit, normal) #projection de la vitesse
+        v2n = np.dot(b2.vit, normal)
+
+        # On n'agit que si les billes se rapprochent encore (évite les doubles résolutions)
+        if v1n - v2n <= 0: #cela signifie que les billes s'éloignent car la bille 2 a une vitesse + élevée que la 1
+            return
+
+        b1.vit += (v2n - v1n) * normal
+        b2.vit += (v1n - v2n) * normal
+
+        #Exemple : b1 arrive en diagonale sur b2 immobile
+        # b1 vitesse = [3, 2]
+        # normal = [1, 0] (b2 est directement à droite de b1)
+        #
+        # v1n = dot([3, 2], [1, 0]) = 3  # composante vers b2
+        # v2n = dot([0, 0], [1, 0]) = 0  # b2 immobile
+        #
+        # après collision:
+        # b1.vit = [3, 2] + (0 - 3) * [1, 0] = [0, 2]  # perd sa vitesse horizontale
+        # b2.vit = [0, 0] + (3 - 0) * [1, 0] = [3, 0]  # repart horizontalement
 
     def resolve_table_collision(self, ball:Ball)->None:
         """
         Fait rebondir les billes sur le bord de la table
+
+        Le rebond est supposé parfaitement élastique (pas de perte
+        d'énergie sur la bande).  La bille est repositionnée hors de
+        la bande avant d'inverser la composante de vitesse concernée.
+
         :param ball:
         :return:
         """
-        r = ball.rayon()
-
-        #A FAIRE
+        r = ball.rayon
+        x, y = ball.pos
 
         #Côté gauche
+        if x - r < 0:
+            ball.pos[0] = r
+            ball.vit[0] = abs(ball.vit[0]) #on inverse la composante vx pour que la balle reparte avec un angle de 45° avec la normale
+        #Si la balle allait vers le côté gauche, vx < 0 donc on inverse bien la composante
 
         #Côté droit
+        elif x + r > self.table.longueur:
+            ball.pos[0] = self.table.longueur - r
+            ball.vit[0] = -abs(ball.vit[0])
 
         #En bas
+        if y - r < 0:
+            ball.pos[1] = r
+            ball.vit[1] = abs(ball.vit[1])
 
         #En haut
+        elif y + r > self.table.largeur:
+            ball.pos[1] = self.table.largeur - r
+            ball.vit[1] = -abs(ball.vit[1])
 
-
-    def check_pocket(self):
+    def check_pocket(self, ball:Ball)-> None:
         """
         Vérifie si la bille est dans une poche
         :return:
         """
-        #A FAIRE
-
+        for pocket in self.table.poches:
+            if pocket.contains(ball):
+                ball.is_potted = True
+                ball.vit = np.zeros(2, dtype=float)
+                self.potted_this_step.append(ball)
+                break  # une seule poche à la fois suffit
 
     def step(self) -> list[Ball]:
         """
