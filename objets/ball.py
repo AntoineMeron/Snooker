@@ -6,7 +6,7 @@ import numpy as np
 
 class Ball:
     """
-    Une bille de snooker.
+    Une bille de snooker
     """
     def __init__(self, x:float, y:float, speed:float, color:str, points:int, ball_id: int)->None:
         self.pos = np.array([x, y], dtype=float)
