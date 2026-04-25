@@ -11,8 +11,8 @@ Responsabilités :
 
 import math
 import numpy as np
-from objects.ball import Ball
-from objects.table import Tables
+from objets.ball import Ball
+from objets.table import Tables
 
 class Physique :
     """

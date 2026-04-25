@@ -11,11 +11,11 @@ class Ball:
     def __init__(self, x:float, y:float, speed:float, color:str, points:int, ball_id: int)->None:
         self.pos = np.array([x, y], dtype=float)
         self.color = color
-        self.speed = speed
+        #self.speed = speed pas utile il me semble car on a déjà le vecteur vitesse
         self.points = points
         self.id = ball_id
         self.rayon = 2.625 #en cm
-        self.vit: np.ndarray = np.zeros(2, dtype=float)
+        self.vit  = np.zeros(2, dtype=float)
         self.is_potted = False #est-ce que la bille est empochée
 
     def is_moving(self)->bool:
@@ -51,7 +51,7 @@ class Ball:
         return (
             f"Ball(id={self.id}, color='{self.color}', "
             f"pos=({self.pos[0]:.1f}, {self.pos[1]:.1f}), "
-            f"vel=({self.vel[0]:.2f}, {self.vel[1]:.2f}), "
+            f"vel=({self.vit[0]:.2f}, {self.vit[1]:.2f}), "
             f"potted={self.is_potted})"
         )
 
