@@ -181,3 +181,9 @@ class Physique :
             self.check_pocket(ball)
 
         return self.potted_this_step
+
+    def all_stopped(self)-> bool:
+        for ball in Balls :
+            if ball.is_moving():
+                return False
+        return True
