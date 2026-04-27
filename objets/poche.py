@@ -24,7 +24,7 @@ class Poche:
             Position Y du centre.
         """
         self.position_id = position_id
-        self.pos = np.ndarray([x,y], dtype=float)
+        self.pos = np.array([x,y], dtype=float)
         self.rayon = rayon
 
     def contains(self, ball)->bool:

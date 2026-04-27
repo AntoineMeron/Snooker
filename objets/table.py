@@ -36,7 +36,7 @@ class Tables:
 
         #Zone de baulk
         self.baulk_line_x = longueur * 0.206
-        self.baulk_center = np.darray([self.baulk_line_x, largeur/2],dtype=float)
+        self.baulk_center = np.array([self.baulk_line_x, largeur/2],dtype=float)
         self.baulk_zone_rayon = 29.2 #cm réglementaire
 
         self.balls = []
@@ -140,7 +140,7 @@ class Tables:
         self.balls.clear()
 
         # Bille blanche
-        self.balls.append(Ball(0, "white", 0, self.baulk_line_x - 10, self.longueur / 2))
+        self.balls.append(Ball(self.baulk_line_x - 10,self.longueur / 2,"withe",0,0))
 
         # Couleurs sur leurs spots réglementaires
         spots = [

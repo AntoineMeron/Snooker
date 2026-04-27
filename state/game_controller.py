@@ -11,10 +11,10 @@ Responsabilités :
 """
 
 import json
-from objects.ball import Ball
-from objects.table import Tables
-from objects.physique import Physique
-from objects.player import Player
+from objets.ball import Ball
+from objets.table import Tables
+from moteur.physique import Physique
+from objets.player import Player
 
 class GameController:
     """
