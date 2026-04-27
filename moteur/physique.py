@@ -117,7 +117,7 @@ class Physique :
         Fait rebondir les billes sur le bord de la table
 
         Le rebond est supposé parfaitement élastique (pas de perte
-        d'énergie sur la bande).  La bille est repositionnée hors de
+        d'énergie sur la bande). La bille est repositionnée hors de
         la bande avant d'inverser la composante de vitesse concernée.
 
         :param ball:

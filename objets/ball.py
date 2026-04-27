@@ -8,7 +8,7 @@ class Ball:
     """
     Une bille de snooker
     """
-    def __init__(self, x:float, y:float, speed:float, color:str, points:int, ball_id: int)->None:
+    def __init__(self, x:float, y:float, color:str, points:int, ball_id: int)->None:
         self.pos = np.array([x, y], dtype=float)
         self.color = color
         #self.speed = speed pas utile il me semble car on a déjà le vecteur vitesse
