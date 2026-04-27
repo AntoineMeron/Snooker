@@ -35,8 +35,8 @@ class Tables:
         self.friction_coef = 0.985
 
         #Zone de baulk
-        self.baulk_line_x = longueur * 0.206
-        self.baulk_center = np.array([self.baulk_line_x, largeur/2],dtype=float)
+        self.baulk_line_x = largeur * 0.206
+        self.baulk_center = np.array([self.baulk_line_x, longueur/2],dtype=float)
         self.baulk_zone_rayon = 29.2 #cm réglementaire
 
         self.balls = []
@@ -55,12 +55,12 @@ class Tables:
         mid_rayon = 4.0 # les poches du milieu un peu plus petites
         cor_rayon = 4.5
         return [
-            Poche("top_left", 0, L, cor_rayon),
-            Poche("top_mid", l / 2, L, mid_rayon),
-            Poche("top_right", l, L, cor_rayon),
+            Poche("top_left", 0, l, cor_rayon),
+            Poche("top_mid", L / 2, l, mid_rayon),
+            Poche("top_right", L, l, cor_rayon),
             Poche("bot_left", 0, 0, cor_rayon),
-            Poche("bot_mid", l / 2, 0, mid_rayon),
-            Poche("bot_right", l, 0, cor_rayon),
+            Poche("bot_mid", L / 2, 0, mid_rayon),
+            Poche("bot_right", L, 0, cor_rayon),
         ]
 
     def add_ball(self,ball:Ball)->None:
@@ -140,7 +140,7 @@ class Tables:
         self.balls.clear()
 
         # Bille blanche
-        self.balls.append(Ball(self.baulk_line_x - 10,self.longueur / 2,"withe",0,0))
+        self.balls.append(Ball(self.baulk_line_x - 10,self.longueur / 2,"white",0,0))
 
         # Couleurs sur leurs spots réglementaires
         spots = [
@@ -166,7 +166,7 @@ class Tables:
 
         r = 2.625
         row_gap = r * 2  # espacement horizontal entre rangées
-        start_x = pink.pos[0] + r * 2 + 1.0
+        start_x = pink.pos[0] + r * 2
         ball_id = 1
 
         for row in range(5):  # 5 rangées : 1,2,3,4,5 billes
