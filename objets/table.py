@@ -36,7 +36,7 @@ class Tables:
 
         #Zone de baulk
         self.baulk_line_x = longueur * 0.206
-        self.baulk_center = np.darray([self.baulk_line_x, largeur/2],dtype=float)
+        self.baulk_center = np.array([self.baulk_line_x, largeur/2],dtype=float)
         self.baulk_zone_rayon = 29.2 #cm réglementaire
 
         self.balls = []
