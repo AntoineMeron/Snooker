@@ -36,3 +36,9 @@ def test_reset():
     assert ball.pos[1] == 100
     assert ball.is_moving() == False
     assert ball.is_potted == False
+
+print(test_ball_init())
+print(test_is_moving_false())
+print(test_is_moving_true())
+print(test_is_moving_seuil())
+print(test_reset())
