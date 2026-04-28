@@ -15,7 +15,7 @@ from objets.ball import Ball
 from objets.table import Tables
 from moteur.physique import Physique
 from objets.player import Player
-from objets.rules import Rules
+from moteur.rules import Rules
 
 class GameController:
     """

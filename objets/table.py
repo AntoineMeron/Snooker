@@ -55,12 +55,12 @@ class Tables:
         mid_rayon = 4.0 # les poches du milieu un peu plus petites
         cor_rayon = 4.5
         return [
-            Poche("top_left", 0, l, cor_rayon),
-            Poche("top_mid", L / 2, l, mid_rayon),
-            Poche("top_right", L, l, cor_rayon),
-            Poche("bot_left", 0, 0, cor_rayon),
-            Poche("bot_mid", L / 2, 0, mid_rayon),
-            Poche("bot_right", L, 0, cor_rayon),
+            Poche("top_left", 0, 0, cor_rayon),
+            Poche("top_mid",0, l/2, mid_rayon),
+            Poche("top_right",0, l, cor_rayon),
+            Poche("bot_left", L, 0, cor_rayon),
+            Poche("bot_mid", L, l/2, mid_rayon),
+            Poche("bot_right", L, l, cor_rayon),
         ]
 
     def add_ball(self,ball:Ball)->None:

@@ -19,8 +19,8 @@ from state.game_controller import GameController
 # ─────────────────────────────────────────────
 #  Dimensions de l'affichage ASCII
 # ─────────────────────────────────────────────
-COLS = 80
-ROWS = 24
+COLS = 28 * 180 // 370 * 2
+ROWS = 28
 
 
 def render(gc: GameController, step: int = 0) -> None:
@@ -107,8 +107,8 @@ def main():
     input()
 
     # ── Tir 1 : Alice vise le triangle de rouges ───────
-    print("  Alice tire (angle=2°, force=55)...")
-    gc.handle_shot(angle_deg=2.0, force=55)
+    print("  Alice tire (angle=80°, force=60)...")
+    gc.handle_shot(angle_deg=70, force=60)
     steps = simulate_until_stopped(gc, render)
 
     print(f"\n  Tir terminé en {steps} steps ({steps/60:.2f}s simulées).")
