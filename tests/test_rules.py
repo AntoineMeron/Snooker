@@ -5,7 +5,7 @@ Tests du moteur de règles.
 import pytest
 from objets.ball import Ball
 from objets.player import Player
-from objets.rules import Rules
+from moteur.rules import Rules
 
 
 # ------------------------------------------------------------------
@@ -151,3 +151,45 @@ def test_frame_terminee_ignore_blanche(rules):
     ]
     balls[1].is_potted = True
     assert rules.is_frame_over(balls) == True
+
+if __name__ == "__main__":
+    r = Rules(15)
+    p = [Player("Alice"), Player("Bob")]
+    rouge = Ball(x=0, y=0, color="red", points=1, ball_id=1)
+    noire = Ball(x=0, y=0, color="black", points=7, ball_id=7)
+    blanche = Ball(x=0, y=0, color="white", points=0, ball_id=0)
+
+    print("--- score_potted ---")
+    r.score_potted(rouge, p, 0)
+    print(f"score Alice après rouge : {p[0].score}")          # attendu : 1
+    print(f"next_ball_type : {r.next_ball_type}")              # attendu : colour
+    print(f"reds_on_table : {r.reds_on_table}")                # attendu : 14
+
+    r2 = Rules(15)
+    p2 = [Player("Alice"), Player("Bob")]
+    r2.next_ball_type = 'colour'
+    r2.score_potted(noire, p2, 0)
+    print(f"score Alice après noire : {p2[0].score}")          # attendu : 7
+    print(f"next_ball_type : {r2.next_ball_type}")             # attendu : red
+
+    print("\n--- detect_foul ---")
+    print(r.detect_foul([], white_potted=True))                # attendu : non vide
+    print(r.detect_foul([], white_potted=False))               # attendu : ""
+    r3 = Rules(15)
+    r3.next_ball_type = 'red'
+    print(r3.detect_foul([noire], white_potted=False))         # attendu : non vide
+    r3.next_ball_type = 'colour'
+    print(r3.detect_foul([rouge], white_potted=False))         # attendu : non vide
+
+    print("\n--- apply_foul ---")
+    p3 = [Player("Alice"), Player("Bob")]
+    r4 = Rules(15)
+    r4.apply_foul("Faute", p3, current_idx=0)
+    print(f"score Bob après faute d'Alice : {p3[1].score}")    # attendu : 4
+    print(f"in_hand : {r4.in_hand}")                           # attendu : True
+
+    print("\n--- is_frame_over ---")
+    balls = [blanche, rouge]
+    print(r.is_frame_over(balls))                              # attendu : False
+    rouge.is_potted = True
+    print(r.is_frame_over(balls))                              # attendu : True

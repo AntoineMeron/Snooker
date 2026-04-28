@@ -159,3 +159,56 @@ def test_all_stopped_faux(physique, table):
     b.vit = np.array([50.0, 0.0])
     table.add_ball(b)
     assert physique.all_stopped() == False
+
+
+if __name__ == "__main__":
+    table = Tables()
+    physique = Physique(table=table)
+
+    print("--- apply_shot ---")
+    b = Ball(x=185, y=90, color="red", points=1, ball_id=1)
+    physique.apply_shot(b, angle_deg=0, force=100)
+    print(f"vitesse après force=100 : {float(np.linalg.norm(b.vit)):.2f}")  # attendu : 500.0
+    physique.apply_shot(b, angle_deg=0, force=0)
+    print(f"vitesse après force=0 : {float(np.linalg.norm(b.vit)):.2f}")    # attendu : 0.0
+    physique.apply_shot(b, angle_deg=0, force=50)
+    print(f"vit[0] angle 0° : {b.vit[0]:.2f}, vit[1] : {b.vit[1]:.2f}")    # attendu : vit[0]>0, vit[1]≈0
+    physique.apply_shot(b, angle_deg=90, force=50)
+    print(f"vit[1] angle 90° : {b.vit[1]:.2f}, vit[0] : {b.vit[0]:.2f}")   # attendu : vit[1]>0, vit[0]≈0
+
+    print("\n--- move_ball ---")
+    b = Ball(x=185, y=90, color="red", points=1, ball_id=1)
+    b.vit = np.array([100.0, 0.0])
+    pos_avant = b.pos[0]
+    physique.move_ball(b)
+    print(f"position après move : {b.pos[0]:.2f} (avant : {pos_avant:.2f})")  # attendu : > pos_avant
+    print(f"vitesse après friction : {float(np.linalg.norm(b.vit)):.4f}")      # attendu : < 100.0
+
+    print("\n--- resolve_ball_collision ---")
+    b1 = Ball(x=100, y=90, color="white", points=0, ball_id=0)
+    b2 = Ball(x=105, y=90, color="red", points=1, ball_id=1)
+    b1.vit = np.array([50.0, 0.0])
+    b2.vit = np.array([0.0, 0.0])
+    physique.resolve_ball_collision(b1, b2)
+    print(f"vit b1 après collision : {b1.vit[0]:.2f}")  # attendu : ≈ 0
+    print(f"vit b2 après collision : {b2.vit[0]:.2f}")  # attendu : > 0
+
+    print("\n--- resolve_table_collision ---")
+    b = Ball(x=1.0, y=90, color="red", points=1, ball_id=1)
+    b.vit = np.array([-50.0, 0.0])
+    physique.resolve_table_collision(b)
+    print(f"vit[0] après rebond gauche : {b.vit[0]:.2f}")   # attendu : > 0
+
+    b = Ball(x=185, y=1.0, color="red", points=1, ball_id=1)
+    b.vit = np.array([0.0, -50.0])
+    physique.resolve_table_collision(b)
+    print(f"vit[1] après rebond bas : {b.vit[1]:.2f}")      # attendu : > 0
+
+    print("\n--- all_stopped ---")
+    t2 = Tables()
+    p = Physique(table=t2)
+    b = Ball(x=185, y=90, color="red", points=1, ball_id=1)
+    t2.add_ball(b)
+    print(f"all_stopped sans mouvement : {p.all_stopped()}")  # attendu : True
+    b.vit = np.array([50.0, 0.0])
+    print(f"all_stopped avec mouvement : {p.all_stopped()}")  # attendu : False
