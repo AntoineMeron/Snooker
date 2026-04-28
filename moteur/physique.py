@@ -182,8 +182,13 @@ class Physique :
 
         return self.potted_this_step
 
-    def all_stopped(self)-> bool:
-        for ball in Balls :
-            if ball.is_moving():
-                return False
-        return True
+    def all_stopped(self) -> bool:
+        """
+        Vérifie si toutes les billes sont immobiles.
+
+        Returns
+        -------
+        bool
+            True si aucune bille n'est en mouvement.
+        """
+        return all(not ball.is_moving() for ball in self.table.get_active_balls())
