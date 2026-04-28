@@ -27,7 +27,7 @@ class Ball:
         bool
             True si la vitesse dépasse le seuil minimal.
         """
-        return (float(np.linalg.norm(self.vit))) > 0.01
+        return (float(np.linalg.norm(self.vit))) > 0.5
 
     def reset(self,x:float, y:float)->None:
         """

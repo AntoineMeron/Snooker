@@ -35,8 +35,8 @@ class Tables:
         self.friction_coef = 0.985
 
         #Zone de baulk
-        self.baulk_line_x = largeur * 0.206
-        self.baulk_center = np.array([self.baulk_line_x, longueur/2],dtype=float)
+        self.baulk_line_y = longueur* 0.206
+        self.baulk_center = np.array([largeur/2,self.baulk_line_y],dtype=float)
         self.baulk_zone_rayon = 29.2 #cm réglementaire
 
         self.balls = []
@@ -108,7 +108,9 @@ class Tables:
         """
         white = self.get_ball_id(0)
         if white:
-            white.reset(x,y)
+            white.pos = np.array([x, y], dtype=float)
+            white.vit = np.zeros(2, dtype=float)
+            white.is_potted = False
 
     def in_baulk_zone(self,x:float,y:float)->bool:
         """
@@ -126,9 +128,9 @@ class Tables:
         boolean
             True si le point est dans la zone
         """
-        pt = np.darray([x,y],dtype=float)
-        dist = np.linalg.norm(pt-self.baulk_center)
-        return dist <= self.baulk_zone_rayon and x <= self.baulk_line_x
+        pt = np.array([x,y],dtype=float)
+        dist = float(np.linalg.norm(pt-self.baulk_center))
+        return dist <= self.baulk_zone_rayon and y <= self.baulk_line_y
 
     def setup_balls(self) -> None:
         """
@@ -140,16 +142,16 @@ class Tables:
         self.balls.clear()
 
         # Bille blanche
-        self.balls.append(Ball(self.baulk_line_x - 10,self.longueur / 2,"white",0,0))
+        self.balls.append(Ball(self.largeur/2,self.baulk_line_y - 10,"white",0,0))
 
         # Couleurs sur leurs spots réglementaires
         spots = [
-            (16, "yellow", 2, self.baulk_line_x, self.longueur / 2 - 18.4),
-            (17, "green", 3, self.baulk_line_x, self.longueur / 2 + 18.4),
-            (18, "brown", 4, self.baulk_line_x, self.longueur / 2),
+            (16, "yellow", 2,self.largeur / 2 - 18.4,self.baulk_line_y),
+            (17, "green", 3,self.largeur/ 2 + 18.4,self.baulk_line_y),
+            (18, "brown", 4, self.largeur / 2,self.baulk_line_y),
             (19, "blue", 5, self.largeur / 2, self.longueur / 2),
-            (20, "pink", 6, self.largeur * 0.74, self.longueur / 2),
-            (21, "black", 7, self.largeur * 0.89, self.longueur / 2),
+            (20, "pink", 6, self.largeur/2, self.longueur*0.74),
+            (21, "black", 7, self.largeur/2, self.longueur*0.89),
         ]
         for bid, col, pts, x, y in spots:
             self.balls.append(Ball(x,y,col,pts,bid))
@@ -166,14 +168,16 @@ class Tables:
 
         r = 2.625
         row_gap = r * 2  # espacement horizontal entre rangées
-        start_x = pink.pos[0] + r * 2
+        start_y = pink.pos[1] + r * 2
         ball_id = 1
-
-        for row in range(5):  # 5 rangées : 1,2,3,4,5 billes
+        cx = self.largeur / 2
+        for row in range(5):  # rangées : 1, 2, 3, 4, 5 billes
             n_balls = row + 1
-            start_y = self.longueur / 2 - row * r
+            y = start_y + row * row_gap
+            # Les billes de la rangée sont centrées horizontalement
+            start_x = cx - row * r
             for col in range(n_balls):
-                x = start_x + row * row_gap
-                y = start_y + col * r * 2
-                self.balls.append(Ball(x,y,"red", 1, ball_id))
+                x = start_x + col * r * 2
+                self.balls.append(Ball(x, y, "red", 1, ball_id))
                 ball_id += 1
+

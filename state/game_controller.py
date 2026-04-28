@@ -192,7 +192,6 @@ class GameController:
             ball = Ball(
                 x=b_data["x"],
                 y=b_data["y"],
-                speed=0,
                 color=b_data["color"],
                 points=b_data["points"],
                 ball_id=b_data["id"],

@@ -64,7 +64,7 @@ class Physique :
         ball.pos += ball.vit*self.dt
 
         #On réduit la vitesse à chaque dt avec le coef de friction
-        ball.vit *= self.table.friction_coef ** self.dt #permet que le ralentissement soit le même quelque soit le dt choisi, sinon, la bille freinera 2 fois moins vite en mettant dt=1/30 au lieu de dt= 1/60
+        ball.vit *= self.table.friction_coef #permet que le ralentissement soit le même quelque soit le dt choisi, sinon, la bille freinera 2 fois moins vite en mettant dt=1/30 au lieu de dt= 1/60
         #VOIR AVEC ANTOINE COMMENT ON VOIT FRICTION_COEF
 
     def resolve_ball_collision(self, b1 : Ball, b2 : Ball)-> None:
@@ -133,8 +133,8 @@ class Physique :
         #Si la balle allait vers le côté gauche, vx < 0 donc on inverse bien la composante
 
         #Côté droit
-        elif x + r > self.table.longueur:
-            ball.pos[0] = self.table.longueur - r
+        elif x + r > self.table.largeur:
+            ball.pos[0] = self.table.largeur- r
             ball.vit[0] = -abs(ball.vit[0])
 
         #En bas
@@ -143,8 +143,8 @@ class Physique :
             ball.vit[1] = abs(ball.vit[1])
 
         #En haut
-        elif y + r > self.table.largeur:
-            ball.pos[1] = self.table.largeur - r
+        elif y + r > self.table.longueur:
+            ball.pos[1] = self.table.longueur - r
             ball.vit[1] = -abs(ball.vit[1])
 
     def check_pocket(self, ball:Ball)-> None:
@@ -177,8 +177,8 @@ class Physique :
 
         #Collisions avec la table
         for ball in active :
-            self.resolve_table_collision(ball)
             self.check_pocket(ball)
+            self.resolve_table_collision(ball)
 
         return self.potted_this_step
 
