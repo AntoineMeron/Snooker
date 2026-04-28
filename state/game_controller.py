@@ -15,6 +15,7 @@ from objets.ball import Ball
 from objets.table import Tables
 from moteur.physique import Physique
 from objets.player import Player
+from objets.rules import Rules
 
 class GameController:
     """
@@ -26,6 +27,8 @@ class GameController:
         La table de jeu avec ses billes et ses poches.
     physique : Physique
         Le moteur physique.
+    rules : Rules
+        Le moteur de règles.
     players : list[Player]
         Liste des deux joueurs.
     current_player_index : int
@@ -47,12 +50,14 @@ class GameController:
         """
         self.table = Tables()
         self.physique = Physique(table=self.table)
+        self.rules = Rules()
 
         self.players = [Player(name1), Player(name2)]
         self.current_player_index = 0
 
         self.state = 'aiming'
         self.table.setup_balls()
+        self._potted_this_shot = []
 
     def current_player(self) -> Player:
         """
@@ -66,7 +71,7 @@ class GameController:
         """
         return self.players[self.current_player_index]
 
-    def switch_turn(self) -> Player:
+    def switch_turn(self) -> None:
         """
         Remet le break du joueur courant à zéro, puis passe la main.
         """
@@ -82,6 +87,7 @@ class GameController:
         self.table.balls = []
         self.table.setup_balls()
         self.current_player_index = 0
+        self.rules = Rules() #on recrée les règles pour mettre next_ball_type etc à 0
 
         for player in self.players:
             player.score = 0
@@ -111,32 +117,52 @@ class GameController:
 
         self.physique.apply_shot(white_ball, angle_deg, force)
         self.state = 'rolling'  # les billes commencent à bouger
+        self._potted_this_shot = []
 
-    def run_frame(self )-> None:
+    def run_frame(self) -> None:
         """
         Avance la simulation d'une frame.
 
         À appeler à chaque frame de l'interface graphique.
         Tant que des billes bougent, on fait avancer la physique.
-        Quand tout s'arrête, on analyse ce qui s'est passé.
+        Quand tout s'arrête, on applique les règles puis on passe le tour.
         """
         if self.state != 'rolling':
-            return  # on n'avance la physique que si les billes bougent
+            return
 
-        # On avance la physique d'un pas de temps
         potted = self.physique.step()
+        self._potted_this_shot += potted #on accumule à chaque frame
 
-        # On traite les billes empochées
-        for ball in potted:
-            self.current_player().add_points(ball.points)
-            print(f"{self.current_player().name} empoche {ball.color} (+{ball.points} pts)")
-
-            # A faire : appeler Rules pour savoir si c'est valide et ajouter les points
-
-        # Quand toutes les billes sont arrêtées, le tour peut changer
+        # Quand toutes les billes sont arrêtées, on applique les règles, on peut commencer à viser
         if self.physique.all_stopped():
             self.state = 'aiming'
-            self.switch_turn()
+
+            # On vérifie si la bille blanche est dans la liste des empochées
+            white_potted = any(b.id == 0 for b in self._potted_this_shot)
+            foul = self.rules.detect_foul(self._potted_this_shot, white_potted)
+
+            if foul:
+                # Faute : les points vont à l'adversaire et on passe le tour
+                print(foul)
+                self.rules.apply_foul(foul, self.players, self.current_player_index)
+                self.switch_turn()
+            else:
+                # Coup valide : on attribue les points au joueur courant
+                for ball in self._potted_this_shot:
+                    self.rules.score_potted(ball, self.players, self.current_player_index)
+
+                if self._potted_this_shot:
+                    # Le joueur a empoché au moins une bille : il rejoue
+                    print(f"{self.current_player().name} rejoue !")
+                else:
+                    # Aucune bille empochée : on passe le tour
+                    self.switch_turn()
+
+            # On vérifie si la frame est terminée
+            if self.rules.is_frame_over(self.table.balls):
+                print("Frame terminée !")
+                print(f"{self.players[0].name} : {self.players[0].score} pts")
+                print(f"{self.players[1].name} : {self.players[1].score} pts")
 
     def save_game(self, filepath: str = "save.json") -> None:
         """
@@ -151,6 +177,12 @@ class GameController:
             "current_player": self.current_player_index,
             "state": self.state,
             "players": [p.get_stats() for p in self.players],
+            "rules": {
+                "reds_on_table": self.rules.reds_on_table,
+                "next_ball_type": self.rules.next_ball_type,
+                "free_ball": self.rules.free_ball,
+                "in_hand": self.rules.in_hand,
+            },
             "balls": [
                 {
                     "id": b.id,
@@ -186,6 +218,11 @@ class GameController:
         for i, p_data in enumerate(data["players"]):
             self.players[i].score = p_data["score"]
             self.players[i].current_break = p_data["current_break"]
+
+        self.rules.reds_on_table = data["rules"]["reds_on_table"]
+        self.rules.next_ball_type = data["rules"]["next_ball_type"]
+        self.rules.free_ball = data["rules"]["free_ball"]
+        self.rules.in_hand = data["rules"]["in_hand"]
 
         self.table.balls = []
         for b_data in data["balls"]:

@@ -13,7 +13,7 @@ Responsabilités :
 from objets.ball import Ball
 from objets.player import Player
 
-class RuleEngine:
+class Rules:
     """
     Applique les règles officielles du snooker.
 
@@ -85,37 +85,10 @@ class RuleEngine:
                 self.next_ball_type = 'red'  # il reste des rouges : on revient aux rouges
             # sinon on reste sur 'colour' pour empocher les couleurs dans l'ordre
 
-
-    def validate_shot(self, potted_balls: list[Ball]) -> bool:
-        """
-        Vérifie si les billes empochées correspondent à ce qui était attendu.
-
-        Parameters
-        ----------
-        potted_balls : list[Ball]
-            Liste des billes empochées lors du coup.
-
-        Returns
-        -------
-        bool
-            True si le coup est valide.
-        """
-        if not potted_balls:
-            return True  # aucune bille empochée : coup raté mais pas forcément une faute
-
-        for ball in potted_balls:
-            if ball.id == 0:
-                return False  # bille blanche empochée = toujours une faute
-            if self.next_ball_type == 'red' and ball.points != 1:
-                return False  # on devait viser une rouge et on a empoché une couleur
-            if self.next_ball_type == 'colour' and ball.points == 1:
-                return False  # on devait viser une couleur et on a empoché une rouge
-
-        return True
-
     def detect_foul(self, potted_balls: list[Ball], white_potted: bool) -> str:
         """
-        Détecte le type de faute commise, s'il y en a une.
+        Détecte si une faute a été commise et retourne sa description.
+        Une chaîne vide signifie qu'il n'y a pas de faute (coup valide).
 
         Parameters
         ----------
@@ -127,7 +100,7 @@ class RuleEngine:
         Returns
         -------
         str
-            Description de la faute, ou chaîne vide si pas de faute.
+            Description de la faute, ou chaîne vide si le coup est valide.
         """
         if white_potted:
             return "Faute : bille blanche empochée"
@@ -138,9 +111,7 @@ class RuleEngine:
             if self.next_ball_type == 'colour' and ball.points == 1:
                 return "Faute : devait viser une couleur, a empoché une rouge"
 
-        return ""  # pas de faute
-
-    #ON PEUT PAS FUSIONNER VALIDATE_SHOT ET DETECT_FOUL ?
+        return ""  # chaîne vide = pas de faute = coup valide
 
     def apply_foul(self, foul: str, players: list[Player], current_idx: int) -> None:
         """
@@ -167,31 +138,6 @@ class RuleEngine:
         players[adversaire_idx].add_points(penalite)
         self.in_hand = True  # l'adversaire récupère la bille en main
         print(f"Faute ! +{penalite} pts pour {players[adversaire_idx].name}")
-
-
-    def next_turn(self, players: list[Player], current_idx: int) -> int:
-        """
-        Prépare le passage au tour suivant.
-        Remet le break du joueur courant à zéro et retourne l'index du joueur suivant.
-
-        Parameters
-        ----------
-        players : list[Player]
-            Liste des deux joueurs.
-        current_idx : int
-            Index du joueur courant.
-
-        Returns
-        -------
-        int
-            Index du joueur suivant (0 ou 1).
-        """
-        players[current_idx].reset_break()
-        next_idx = 1 - current_idx
-        print(f"Tour de {players[next_idx].name}")
-        return next_idx
-
-    #FONCTION DEJA ECRITE DANS GAME_CONTROLLER NON ?
 
     def is_frame_over(self, balls: list[Ball]) -> bool:
         """
