@@ -49,7 +49,7 @@ class TableView:
         self.height_px = graphics_view.height()
 
         # Échelle : on adapte au widget réel
-        self.scale = self.width_px / table.largeur  # px par cm
+        self.scale = (self.width_px - 2 * self.PADDING) / self.table.largeur
 
         # Création et rattachement de la scène
         self.scene = QGraphicsScene()
@@ -61,34 +61,18 @@ class TableView:
     # Conversion coordonnées
     # ------------------------------------------------------------------
 
+    PADDING = 10  # pixels de marge
+
     def to_px(self, x_cm: float, y_cm: float) -> tuple:
-        """
-        Convertit des coordonnées cm en pixels.
-
-        Y est inversé : y=0 est en bas dans ton repère,
-        mais en haut en pixels Qt.
-
-        Parameters
-        ----------
-        x_cm : float
-            Coordonnée X en cm.
-        y_cm : float
-            Coordonnée Y en cm.
-
-        Returns
-        -------
-        tuple
-            (px, py) en pixels.
-        """
-        px = x_cm * self.scale
-        py = self.height_px - (y_cm * self.scale)
+        px = self.PADDING + x_cm * self.scale
+        py = self.height_px - self.PADDING - (y_cm * self.scale)
         return px, py
 
     # ------------------------------------------------------------------
     # Dessin principal
     # ------------------------------------------------------------------
 
-    def draw(self) -> None:
+    def draw(self,angle_deg: float = 90.0, force: float = 60.0) -> None:
         """
         Efface et redessine toute la scène.
         À appeler à chaque frame.
@@ -97,36 +81,72 @@ class TableView:
         self._draw_table()
         self._draw_baulk()
         self._draw_pockets()
+        self._draw_trajectory(angle_deg, force)
         self._draw_balls()
+
+    def _draw_trajectory(self,angle_deg: float, force: float) -> None:
+        """
+        Dessine la trajectoire de la bille blanche.
+        """
+        import math
+        from PyQt5.QtGui import QPen, QColor
+        from PyQt5.QtCore import Qt
+
+        white = self.table.get_ball_id(0)
+        if white is None or white.is_potted:
+            return
+
+        # Longueur du trait proportionnelle à la force (max 150 px)
+        longueur_px = (force / 100) * 150
+
+        angle_rad = math.radians(angle_deg)
+        px, py = self.to_px(white.pos[0], white.pos[1])
+
+        # Point d'arrivée du trait
+        end_px = px + longueur_px * math.cos(angle_rad)
+        end_py = py - longueur_px * math.sin(angle_rad)  # Y inversé
+
+        pen = QPen(QColor("white"), 1)
+        pen.setStyle(Qt.DashLine)  # trait pointillé
+        self.scene.addLine(px, py, end_px, end_py, pen)
 
     def _draw_table(self) -> None:
         """Dessine le fond vert du tapis."""
         self.scene.addRect(
-            0, 0,
-            self.width_px, self.height_px,
+            self.PADDING, self.PADDING,
+            self.width_px - 2 * self.PADDING,
+            self.height_px - 2 * self.PADDING,
             QPen(QColor("#1a1a1a"), 3),
             QBrush(QColor("#2d8a2d"))
         )
 
     def _draw_baulk(self) -> None:
-        """Dessine la ligne de baulk et le demi-cercle D en blanc."""
-        # Ligne de baulk (horizontale)
         baulk_py = self.height_px - (self.table.baulk_line_y * self.scale)
         pen_white = QPen(QColor("white"), 1)
-        self.scene.addLine(0, baulk_py, self.width_px, baulk_py, pen_white)
-
-        # Demi-cercle D
+        r_px = self.table.baulk_zone_rayon * self.scale
         cx, cy = self.to_px(
             self.table.baulk_center[0],
             self.table.baulk_center[1]
         )
-        r_px = self.table.baulk_zone_rayon * self.scale
+
+        # 1 — Cercle complet
         self.scene.addEllipse(
             cx - r_px, cy - r_px,
             r_px * 2, r_px * 2,
             pen_white,
             QBrush(Qt.transparent)
         )
+
+        # 2 — Masque la moitié haute
+        self.scene.addRect(
+            cx - r_px, cy - r_px,
+            r_px * 2, r_px,
+            QPen(Qt.transparent),
+            QBrush(QColor("#2d8a2d"))
+        )
+
+        # 3 — Ligne de baulk dessinée EN DERNIER pour passer par-dessus le masque
+        self.scene.addLine(0, baulk_py, self.width_px, baulk_py, pen_white)
 
     def _draw_pockets(self) -> None:
         """Dessine les 6 poches en noir."""
@@ -160,3 +180,4 @@ class TableView:
                 QPen(Qt.black, 0.5),
                 QBrush(color)
             )
+

@@ -11,8 +11,11 @@ Responsabilités :
 
 import math
 import numpy as np
+import copy
 from objets.ball import Ball
 from objets.table import Tables
+
+_MAX_RECURSION = 200
 
 class Physique :
     """
@@ -192,3 +195,63 @@ class Physique :
             True si aucune bille n'est en mouvement.
         """
         return all(not ball.is_moving() for ball in self.table.get_active_balls())
+
+    def predict_trajectory(self,ball:Ball,table:Tables,steps:int = 0, max_steps: int = _MAX_RECURSION, path = None) -> list[np.ndarray]:
+        """
+        Prédit la trajectoire d'une bille par simulation récursive.
+
+        Chaque appel simule un pas de temps et ajoute
+        la position courante à la liste "path".
+
+        La récursion s'arrête quand :
+        - La bille est immobile
+        - La profondeur maximum est atteinte
+        - La bille est empochée
+
+           Parameters
+        ----------
+        ball : Ball
+            Bille dont on prédit la trajectoire (copie recommandée).
+        table : Tables
+            La table (pour les bandes et les poches).
+        steps : int
+            Compteur de récursion courant (ne pas passer à l'appel initial).
+        max_steps : int
+            Profondeur maximale de récursion.
+        path : Optional[List[np.ndarray]]
+            Accumulateur de positions (ne pas passer à l'appel initial).
+
+        Returns
+        -------
+        List[np.ndarray]
+            Liste de vecteurs position [x, y] le long de la trajectoire.
+        """
+
+        if path is None:
+            path = [ball.pos.copy()]
+
+        #1er cas : bille arrêtée
+        if not ball.is_moving():
+            return path
+        #2ème cas : profondeur max atteinte
+        if steps >= max_steps:
+            return path
+        #3ème cas : bille empochée
+        for pocket in self.table.poches:
+            if pocket.contains(ball):
+                return path
+
+        ball.pos = ball.pos + ball.vit * self.dt
+        ball.vit = ball.vit* self.friction_coef
+
+        # Arrêt net sous le seuil
+        if float(np.linalg.norm(ball.vel)) < 0.5:
+            ball.vel = np.zeros(2, dtype=float)
+
+        # Rebonds sur les bandes
+        self.resolve_table_collision(ball)
+
+        path.append(ball.pos.copy())
+
+        # Appel récursif
+        return self.predict_trajectory(ball, table, steps + 1, max_steps, path)
