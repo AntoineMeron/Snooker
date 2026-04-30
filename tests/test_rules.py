@@ -71,32 +71,39 @@ def test_score_couleur_fin_de_frame(rules, players, noire):
 # ------------------------------------------------------------------
 
 def test_detect_foul_blanche_empochee(rules, blanche):
-    """Empocher la blanche est toujours une faute."""
-    foul = rules.detect_foul([], white_potted=True)
+    foul, penalite = rules.detect_foul([], white_potted=True)
     assert foul != ""
+    assert penalite == 4
 
 def test_detect_foul_couleur_quand_rouge_attendue(rules, noire):
-    """Empocher une couleur quand on devait viser une rouge = faute."""
     rules.next_ball_type = 'red'
-    foul = rules.detect_foul([noire], white_potted=False)
+    foul, penalite = rules.detect_foul([noire], white_potted=False)
     assert foul != ""
+    assert penalite == 7  # max(4, 7)
 
 def test_detect_foul_rouge_quand_couleur_attendue(rules, rouge):
-    """Empocher une rouge quand on devait viser une couleur = faute."""
     rules.next_ball_type = 'colour'
-    foul = rules.detect_foul([rouge], white_potted=False)
+    foul, penalite = rules.detect_foul([rouge], white_potted=False)
     assert foul != ""
+    assert penalite == 4  # max(4, 1)
 
 def test_detect_foul_coup_valide(rules, rouge):
-    """Empocher une rouge quand on devait viser une rouge = pas de faute."""
     rules.next_ball_type = 'red'
-    foul = rules.detect_foul([rouge], white_potted=False)
+    foul, penalite = rules.detect_foul([rouge], white_potted=False)
     assert foul == ""
+    assert penalite == 0
 
 def test_detect_foul_rien_empoche(rules):
-    """Aucune bille empochée, pas de blanche = pas de faute."""
-    foul = rules.detect_foul([], white_potted=False)
+    foul, penalite = rules.detect_foul([], white_potted=False)
     assert foul == ""
+    assert penalite == 0
+
+def test_detect_foul_noire_penalite_7(rules, noire):
+    """Empocher la noire par faute donne une pénalité de 7 (max(4,7))."""
+    rules.next_ball_type = 'red'  # on devait viser une rouge
+    foul, penalite = rules.detect_foul([noire], white_potted=False)
+    assert foul != ""
+    assert penalite == 7
 
 
 # ------------------------------------------------------------------
@@ -193,3 +200,13 @@ if __name__ == "__main__":
     print(r.is_frame_over(balls))                              # attendu : False
     rouge.is_potted = True
     print(r.is_frame_over(balls))                              # attendu : True
+
+    print("\n--- detect_foul ---")
+    print(r.detect_foul([], white_potted=True))  # attendu : non vide, pénalité 4
+    r3 = Rules(15)
+    r3.next_ball_type = 'red'
+    foul, penalite = r3.detect_foul([noire], white_potted=False)
+    print(f"faute : {foul}")  # attendu : non vide
+    print(f"pénalité noire : {penalite}")  # attendu : 7
+    r3.next_ball_type = 'colour'
+    print(r3.detect_foul([rouge], white_potted=False))  # attendu : non vide

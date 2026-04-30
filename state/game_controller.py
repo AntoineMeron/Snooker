@@ -140,12 +140,12 @@ class GameController:
 
             # On vérifie si la bille blanche est dans la liste des empochées
             white_potted = any(b.id == 0 for b in self._potted_this_shot)
-            foul = self.rules.detect_foul(self._potted_this_shot, white_potted)
+            foul, penalite = self.rules.detect_foul(self._potted_this_shot, white_potted)
 
             if foul:
                 # Faute : les points vont à l'adversaire et on passe le tour
                 print(foul)
-                self.rules.apply_foul(foul, self.players, self.current_player_index)
+                self.rules.apply_foul(foul, penalite, self.players, self.current_player_index)
                 self.switch_turn()
             else:
                 # Coup valide : on attribue les points au joueur courant

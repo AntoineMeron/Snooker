@@ -85,9 +85,9 @@ class Rules:
                 self.next_ball_type = 'red'  # il reste des rouges : on revient aux rouges
             # sinon on reste sur 'colour' pour empocher les couleurs dans l'ordre
 
-    def detect_foul(self, potted_balls: list[Ball], white_potted: bool) -> str:
+    def detect_foul(self, potted_balls: list[Ball], white_potted: bool) -> tuple[str, int]:
         """
-        Détecte si une faute a été commise et retourne sa description.
+        Détecte si une faute a été commise et retourne sa description et la pénalité.
         Une chaîne vide signifie qu'il n'y a pas de faute (coup valide).
 
         Parameters
@@ -99,31 +99,37 @@ class Rules:
 
         Returns
         -------
-        str
-            Description de la faute, ou chaîne vide si le coup est valide.
+        tuple[str, int]
+            Description de la faute et pénalité en points (0 si pas de faute).
         """
         if white_potted:
-            return "Faute : bille blanche empochée"
+            # La blanche vaut 4 pts de pénalité minimum
+            return "Faute : bille blanche empochée", 4
 
         for ball in potted_balls:
             if self.next_ball_type == 'red' and ball.points != 1:
-                return f"Faute : devait viser une rouge, a empoché {ball.color}"
+                # On devait viser une rouge, pénalité = max(4, valeur de la couleur empochée)
+                penalite = max(4, ball.points)
+                return f"Faute : devait viser une rouge, a empoché {ball.color}", penalite
             if self.next_ball_type == 'colour' and ball.points == 1:
-                return "Faute : devait viser une couleur, a empoché une rouge"
+                # On devait viser une couleur, rouge empochée = 4 pts minimum
+                return "Faute : devait viser une couleur, a empoché une rouge", 4
 
-        return ""  # chaîne vide = pas de faute = coup valide
+        return "", 0  # pas de faute
 
-    def apply_foul(self, foul: str, players: list[Player], current_idx: int) -> None:
+    def apply_foul(self, foul: str, penalite: int, players: list[Player], current_idx: int) -> None:
         """
         Applique la pénalité d'une faute à l'adversaire du joueur courant.
 
-        Au snooker, une faute donne des points à l'adversaire.
-        La pénalité minimale est 4 points.
+        Au snooker, la pénalité est le maximum entre 4 points
+        et la valeur de la bille concernée par la faute.
 
         Parameters
         ----------
         foul : str
             Description de la faute (retournée par detect_foul).
+        penalite : int
+            Nombre de points à donner à l'adversaire (retourné par detect_foul).
         players : list[Player]
             Liste des deux joueurs.
         current_idx : int
@@ -133,10 +139,8 @@ class Rules:
             return
 
         adversaire_idx = 1 - current_idx
-        penalite = 4  # pénalité minimale au snooker
-
         players[adversaire_idx].add_points(penalite)
-        self.in_hand = True  # l'adversaire récupère la bille en main
+        self.in_hand = True
         print(f"Faute ! +{penalite} pts pour {players[adversaire_idx].name}")
 
     def is_frame_over(self, balls: list[Ball]) -> bool:
