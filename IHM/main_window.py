@@ -1,5 +1,5 @@
 """
-ihm/main_window.py
+IHM/main_window.py
 ------------------
 Fenêtre principale du jeu de snooker.
 Connecte l'IHM Qt à GameController.
@@ -8,7 +8,6 @@ Connecte l'IHM Qt à GameController.
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtCore import QTimer
 
-# Fichier généré par pyuic5
 from IHM.IHM import Ui_MainWindow
 from IHM.table_view import TableView
 from state.game_controller import GameController
@@ -32,21 +31,31 @@ class MainWindow(QMainWindow):
         """Initialise la fenêtre et connecte tous les composants."""
         super().__init__()
 
-        # Chargement de l'IHM générée par Qt Designer
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
         # Création du GameController
         self.gc = GameController("Alice", "Bob")
 
-        # Rendu graphique — 'table' est le nom du QGraphicsView dans Qt Designer
+        # Rendu graphique
         self.table_view = TableView(self.ui.Table, self.gc.table)
         self.table_view.draw()
+
+        # Initialisation des labels avec les valeurs par défaut des sliders
+        self._update_label_angle(self.ui.Angle.value())
+        self._update_label_force(self.ui.Force.value())
+
+        # Connexion des sliders
+        self.ui.Angle.valueChanged.connect(self._update_label_angle)
+        self.ui.Force.valueChanged.connect(self._update_label_force)
+
+        # Connexion du bouton tirer
+        self.ui.pushButton.clicked.connect(self._tirer)
 
         # Timer 60 fps
         self.timer = QTimer()
         self.timer.timeout.connect(self._game_loop)
-        self.timer.start(16)  # 16 ms ≈ 60 fps
+        self.timer.start(16)
 
     # ------------------------------------------------------------------
     # Boucle de jeu
@@ -59,3 +68,45 @@ class MainWindow(QMainWindow):
         """
         self.gc.run_frame()
         self.table_view.draw()
+
+    # ------------------------------------------------------------------
+    # Sliders
+    # ------------------------------------------------------------------
+
+    def _update_label_angle(self, value: int) -> None:
+        """
+        Met à jour le label angle quand le slider change.
+
+        Parameters
+        ----------
+        value : int
+            Valeur courante du slider (0-360).
+        """
+        self.ui.label_angle.setText(f"Angle : {value}°")
+
+    def _update_label_force(self, value: int) -> None:
+        """
+        Met à jour le label force quand le slider change.
+
+        Parameters
+        ----------
+        value : int
+            Valeur courante du slider (1-100).
+        """
+        self.ui.label_force.setText(f"Force : {value}")
+
+    # ------------------------------------------------------------------
+    # Tir
+    # ------------------------------------------------------------------
+
+    def _tirer(self) -> None:
+        """
+        Déclenche un tir avec les valeurs courantes des sliders.
+        Ignoré si les billes sont encore en mouvement.
+        """
+        if self.gc.state != 'aiming':
+            return  # on attend que les billes soient arrêtées
+
+        angle = self.ui.Angle.value()
+        force = self.ui.Force.value()
+        self.gc.handle_shot(angle_deg=float(angle), force=float(force))
