@@ -72,7 +72,7 @@ class TableView:
     # Dessin principal
     # ------------------------------------------------------------------
 
-    def draw(self) -> None:
+    def draw(self,angle_deg: float = 90.0, force: float = 60.0) -> None:
         """
         Efface et redessine toute la scène.
         À appeler à chaque frame.
@@ -81,7 +81,34 @@ class TableView:
         self._draw_table()
         self._draw_baulk()
         self._draw_pockets()
+        self._draw_trajectory(angle_deg, force)
         self._draw_balls()
+
+    def _draw_trajectory(self,angle_deg: float, force: float) -> None:
+        """
+        Dessine la trajectoire de la bille blanche.
+        """
+        import math
+        from PyQt5.QtGui import QPen, QColor
+        from PyQt5.QtCore import Qt
+
+        white = self.table.get_ball_id(0)
+        if white is None or white.is_potted:
+            return
+
+        # Longueur du trait proportionnelle à la force (max 150 px)
+        longueur_px = (force / 100) * 150
+
+        angle_rad = math.radians(angle_deg)
+        px, py = self.to_px(white.pos[0], white.pos[1])
+
+        # Point d'arrivée du trait
+        end_px = px + longueur_px * math.cos(angle_rad)
+        end_py = py - longueur_px * math.sin(angle_rad)  # Y inversé
+
+        pen = QPen(QColor("white"), 1)
+        pen.setStyle(Qt.DashLine)  # trait pointillé
+        self.scene.addLine(px, py, end_px, end_py, pen)
 
     def _draw_table(self) -> None:
         """Dessine le fond vert du tapis."""

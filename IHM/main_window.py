@@ -67,7 +67,9 @@ class MainWindow(QMainWindow):
         Avance la physique et redessine.
         """
         self.gc.run_frame()
-        self.table_view.draw()
+        angle = self.ui.Angle.value()
+        force = self.ui.Force.value()
+        self.table_view.draw(angle_deg=angle, force=force)
 
     # ------------------------------------------------------------------
     # Sliders
