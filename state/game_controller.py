@@ -16,6 +16,7 @@ from objets.table import Tables
 from moteur.physique import Physique
 from objets.player import Player
 from moteur.rules import Rules
+from state.game_state import GameState
 
 class GameController:
     """
@@ -173,30 +174,8 @@ class GameController:
         filepath : str
             Chemin du fichier de sauvegarde.
         """
-        data = {
-            "current_player": self.current_player_index,
-            "state": self.state,
-            "players": [p.get_stats() for p in self.players],
-            "rules": {
-                "reds_on_table": self.rules.reds_on_table,
-                "next_ball_type": self.rules.next_ball_type,
-                "free_ball": self.rules.free_ball,
-                "in_hand": self.rules.in_hand,
-            },
-            "balls": [
-                {
-                    "id": b.id,
-                    "x": b.pos[0],
-                    "y": b.pos[1],
-                    "vx": b.vit[0],
-                    "vy": b.vit[1],
-                    "is_potted": b.is_potted,
-                    "color": b.color,
-                    "points": b.points,
-                }
-                for b in self.table.balls
-            ]
-        }
+        state = GameState.from_game_controller(self)  # on prend une photo
+        data = state.to_dict()  # on la convertit en dict
         with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
 
@@ -212,20 +191,19 @@ class GameController:
         with open(filepath, "r") as f:
             data = json.load(f)
 
-        self.current_player_index = data["current_player"]
-        self.state = data["state"]
+        state = GameState.from_dict(data)  # on reconstruit le GameState
 
-        for i, p_data in enumerate(data["players"]):
-            self.players[i].score = p_data["score"]
-            self.players[i].current_break = p_data["current_break"]
+        # On applique le GameState sur le GameController
+        self.current_player_index = state.current_player_idx
+        self.state = state.phase
 
-        self.rules.reds_on_table = data["rules"]["reds_on_table"]
-        self.rules.next_ball_type = data["rules"]["next_ball_type"]
-        self.rules.free_ball = data["rules"]["free_ball"]
-        self.rules.in_hand = data["rules"]["in_hand"]
+        for p_name, p_data in state.scores_snapshot.items():
+            player = next(p for p in self.players if p.name == p_name)
+            player.score = p_data["score"]
+            player.current_break = p_data["current_break"]
 
         self.table.balls = []
-        for b_data in data["balls"]:
+        for b_data in state.balls_snapshot:
             ball = Ball(
                 x=b_data["x"],
                 y=b_data["y"],
