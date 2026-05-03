@@ -143,12 +143,29 @@
 #     main()
 
 import sys
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QInputDialog
 from IHM.main_window import MainWindow
 
 def main():
     app = QApplication(sys.argv)
-    window = MainWindow()
+    # Demande le nom du joueur 1
+    name1, ok1 = QInputDialog.getText(
+        None,
+        "Snooker",
+        "Nom du joueur 1 :"
+    )
+    if not ok1 or not name1.strip():
+        name1 = "Joueur 1"
+
+    # Demande le nom du joueur 2
+    name2, ok2 = QInputDialog.getText(
+        None,
+        "Snooker",
+        "Nom du joueur 2 :"
+    )
+    if not ok2 or not name2.strip():
+        name2 = "Joueur 2"
+    window = MainWindow(name1,name2)
     window.show()
     sys.exit(app.exec_())
 
