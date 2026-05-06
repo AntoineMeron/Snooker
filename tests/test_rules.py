@@ -2,211 +2,140 @@
 Tests du moteur de règles.
 """
 
-import pytest
+import unittest
 from objets.ball import Ball
 from objets.player import Player
 from moteur.rules import Rules
 
 
-# ------------------------------------------------------------------
-# Fixtures
-# ------------------------------------------------------------------
+class TestRules(unittest.TestCase):
+    """Tests du moteur de règles."""
 
-@pytest.fixture
-def rules():
-    """Crée un moteur de règles en début de frame."""
-    return Rules(reds_on_table=15)
+    def setUp(self):
+        """Crée les objets réutilisables avant chaque test."""
+        self.rules = Rules(reds_on_table=15)
+        self.players = [Player("Alice"), Player("Bob")]
+        self.rouge = Ball(x=0, y=0, color="red", points=1, ball_id=1)
+        self.noire = Ball(x=0, y=0, color="black", points=7, ball_id=7)
+        self.blanche = Ball(x=0, y=0, color="white", points=0, ball_id=0)
 
-@pytest.fixture
-def players():
-    """Crée deux joueurs pour les tests."""
-    return [Player("Alice"), Player("Bob")]
+    # ------------------------------------------------------------------
+    # Tests score_potted
+    # ------------------------------------------------------------------
 
-@pytest.fixture
-def rouge():
-    return Ball(x=0, y=0, color="red", points=1, ball_id=1)
+    def test_score_rouge(self):
+        """Empocher une rouge doit ajouter 1 point et passer à 'colour'."""
+        self.rules.score_potted(self.rouge, self.players, current_idx=0)
+        self.assertEqual(self.players[0].score, 1)
+        self.assertEqual(self.rules.next_ball_type, 'colour')
+        self.assertEqual(self.rules.reds_on_table, 14)
 
-@pytest.fixture
-def noire():
-    return Ball(x=0, y=0, color="black", points=7, ball_id=7)
+    def test_score_couleur(self):
+        """Empocher une couleur doit ajouter ses points et repasser à 'red'."""
+        self.rules.next_ball_type = 'colour'
+        self.rules.score_potted(self.noire, self.players, current_idx=0)
+        self.assertEqual(self.players[0].score, 7)
+        self.assertEqual(self.rules.next_ball_type, 'red')
 
-@pytest.fixture
-def blanche():
-    return Ball(x=0, y=0, color="white", points=0, ball_id=0)
+    def test_score_blanche_ignoree(self):
+        """Empocher la blanche ne doit pas ajouter de points."""
+        self.rules.score_potted(self.blanche, self.players, current_idx=0)
+        self.assertEqual(self.players[0].score, 0)
 
+    def test_score_couleur_fin_de_frame(self):
+        """Sans rouges restantes, next_ball_type doit rester sur 'colour'."""
+        self.rules.reds_on_table = 0
+        self.rules.next_ball_type = 'colour'
+        self.rules.score_potted(self.noire, self.players, current_idx=0)
+        self.assertEqual(self.rules.next_ball_type, 'colour')
 
-# ------------------------------------------------------------------
-# Tests score_potted
-# ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # Tests detect_foul
+    # ------------------------------------------------------------------
 
-def test_score_rouge(rules, players, rouge):
-    """Empocher une rouge doit ajouter 1 point et passer à 'colour'."""
-    rules.score_potted(rouge, players, current_idx=0)
-    assert players[0].score == 1
-    assert rules.next_ball_type == 'colour'
-    assert rules.reds_on_table == 14  # une rouge en moins
+    def test_detect_foul_blanche_empochee(self):
+        """Empocher la blanche est toujours une faute, pénalité 4."""
+        foul, penalite = self.rules.detect_foul([], white_potted=True)
+        self.assertNotEqual(foul, "")
+        self.assertEqual(penalite, 4)
 
-def test_score_couleur(rules, players, noire):
-    """Empocher une couleur doit ajouter ses points et repasser à 'red'."""
-    rules.next_ball_type = 'colour'
-    rules.score_potted(noire, players, current_idx=0)
-    assert players[0].score == 7
-    assert rules.next_ball_type == 'red'  # il reste des rouges
+    def test_detect_foul_couleur_quand_rouge_attendue(self):
+        """Empocher une couleur quand rouge attendue = faute, pénalité max(4,7)=7."""
+        self.rules.next_ball_type = 'red'
+        foul, penalite = self.rules.detect_foul([self.noire], white_potted=False)
+        self.assertNotEqual(foul, "")
+        self.assertEqual(penalite, 7)
 
-def test_score_blanche_ignoree(rules, players, blanche):
-    """Empocher la blanche ne doit pas ajouter de points."""
-    rules.score_potted(blanche, players, current_idx=0)
-    assert players[0].score == 0
+    def test_detect_foul_rouge_quand_couleur_attendue(self):
+        """Empocher une rouge quand couleur attendue = faute, pénalité 4."""
+        self.rules.next_ball_type = 'colour'
+        foul, penalite = self.rules.detect_foul([self.rouge], white_potted=False)
+        self.assertNotEqual(foul, "")
+        self.assertEqual(penalite, 4)
 
-def test_score_couleur_fin_de_frame(rules, players, noire):
-    """Quand il n'y a plus de rouges, empocher une couleur garde next_ball_type à 'colour'."""
-    rules.reds_on_table = 0
-    rules.next_ball_type = 'colour'
-    rules.score_potted(noire, players, current_idx=0)
-    assert rules.next_ball_type == 'colour'  # on reste sur colour
+    def test_detect_foul_coup_valide(self):
+        """Empocher une rouge quand rouge attendue = pas de faute."""
+        self.rules.next_ball_type = 'red'
+        foul, penalite = self.rules.detect_foul([self.rouge], white_potted=False)
+        self.assertEqual(foul, "")
+        self.assertEqual(penalite, 0)
 
+    def test_detect_foul_rien_empoche(self):
+        """Aucune bille empochée = pas de faute."""
+        foul, penalite = self.rules.detect_foul([], white_potted=False)
+        self.assertEqual(foul, "")
+        self.assertEqual(penalite, 0)
 
-# ------------------------------------------------------------------
-# Tests detect_foul
-# ------------------------------------------------------------------
+    def test_detect_foul_noire_penalite_7(self):
+        """Empocher la noire par faute donne une pénalité de 7."""
+        self.rules.next_ball_type = 'red'
+        foul, penalite = self.rules.detect_foul([self.noire], white_potted=False)
+        self.assertNotEqual(foul, "")
+        self.assertEqual(penalite, 7)
 
-def test_detect_foul_blanche_empochee(rules, blanche):
-    foul, penalite = rules.detect_foul([], white_potted=True)
-    assert foul != ""
-    assert penalite == 4
+    # ------------------------------------------------------------------
+    # Tests apply_foul
+    # ------------------------------------------------------------------
 
-def test_detect_foul_couleur_quand_rouge_attendue(rules, noire):
-    rules.next_ball_type = 'red'
-    foul, penalite = rules.detect_foul([noire], white_potted=False)
-    assert foul != ""
-    assert penalite == 7  # max(4, 7)
+    def test_apply_foul_points_adversaire(self):
+        """Une faute doit donner 4 points à l'adversaire."""
+        self.rules.apply_foul("Faute : bille blanche empochée", 4, self.players, current_idx=0)
+        self.assertEqual(self.players[1].score, 4)
+        self.assertEqual(self.players[0].score, 0)
 
-def test_detect_foul_rouge_quand_couleur_attendue(rules, rouge):
-    rules.next_ball_type = 'colour'
-    foul, penalite = rules.detect_foul([rouge], white_potted=False)
-    assert foul != ""
-    assert penalite == 4  # max(4, 1)
+    def test_apply_foul_in_hand(self):
+        """Une faute doit mettre in_hand à True."""
+        self.rules.in_hand = False
+        self.rules.apply_foul("Faute", 4, self.players, current_idx=0)
+        self.assertTrue(self.rules.in_hand)
 
-def test_detect_foul_coup_valide(rules, rouge):
-    rules.next_ball_type = 'red'
-    foul, penalite = rules.detect_foul([rouge], white_potted=False)
-    assert foul == ""
-    assert penalite == 0
+    def test_apply_foul_chaine_vide(self):
+        """Appeler apply_foul avec une chaîne vide ne doit rien faire."""
+        self.rules.apply_foul("", 0, self.players, current_idx=0)
+        self.assertEqual(self.players[0].score, 0)
+        self.assertEqual(self.players[1].score, 0)
 
-def test_detect_foul_rien_empoche(rules):
-    foul, penalite = rules.detect_foul([], white_potted=False)
-    assert foul == ""
-    assert penalite == 0
+    # ------------------------------------------------------------------
+    # Tests is_frame_over
+    # ------------------------------------------------------------------
 
-def test_detect_foul_noire_penalite_7(rules, noire):
-    """Empocher la noire par faute donne une pénalité de 7 (max(4,7))."""
-    rules.next_ball_type = 'red'  # on devait viser une rouge
-    foul, penalite = rules.detect_foul([noire], white_potted=False)
-    assert foul != ""
-    assert penalite == 7
+    def test_frame_pas_terminee(self):
+        """Des billes encore en jeu → frame pas terminée."""
+        balls = [self.blanche, self.rouge]
+        self.assertFalse(self.rules.is_frame_over(balls))
 
+    def test_frame_terminee(self):
+        """Toutes les billes (sauf blanche) empochées → frame terminée."""
+        self.rouge.is_potted = True
+        balls = [self.blanche, self.rouge]
+        self.assertTrue(self.rules.is_frame_over(balls))
 
-# ------------------------------------------------------------------
-# Tests apply_foul
-# ------------------------------------------------------------------
+    def test_frame_terminee_ignore_blanche(self):
+        """La blanche non empochée ne doit pas empêcher la fin de frame."""
+        self.rouge.is_potted = True
+        balls = [self.blanche, self.rouge]
+        self.assertTrue(self.rules.is_frame_over(balls))
 
-def test_apply_foul_points_adversaire(rules, players):
-    """Une faute doit donner 4 points à l'adversaire."""
-    rules.apply_foul("Faute : bille blanche empochée", players, current_idx=0)
-    assert players[1].score == 4  # Bob reçoit les points
-    assert players[0].score == 0  # Alice ne reçoit rien
-
-def test_apply_foul_in_hand(rules, players):
-    """Une faute doit mettre in_hand à True."""
-    rules.in_hand = False
-    rules.apply_foul("Faute", players, current_idx=0)
-    assert rules.in_hand == True
-
-def test_apply_foul_chaine_vide(rules, players):
-    """Appeler apply_foul avec une chaîne vide ne doit rien faire."""
-    rules.apply_foul("", players, current_idx=0)
-    assert players[0].score == 0
-    assert players[1].score == 0
-
-
-# ------------------------------------------------------------------
-# Tests is_frame_over
-# ------------------------------------------------------------------
-
-def test_frame_pas_terminee(rules):
-    """Des billes encore en jeu → frame pas terminée."""
-    balls = [
-        Ball(x=0, y=0, color="white", points=0, ball_id=0),
-        Ball(x=0, y=0, color="red", points=1, ball_id=1),  # pas empochée
-    ]
-    assert rules.is_frame_over(balls) == False
-
-def test_frame_terminee(rules):
-    """Toutes les billes (sauf blanche) empochées → frame terminée."""
-    balls = [
-        Ball(x=0, y=0, color="white", points=0, ball_id=0),
-        Ball(x=0, y=0, color="red", points=1, ball_id=1),
-    ]
-    balls[1].is_potted = True
-    assert rules.is_frame_over(balls) == True
-
-def test_frame_terminee_ignore_blanche(rules):
-    """La blanche non empochée ne doit pas empêcher la frame d'être terminée."""
-    balls = [
-        Ball(x=0, y=0, color="white", points=0, ball_id=0),  # blanche jamais empochée
-        Ball(x=0, y=0, color="red", points=1, ball_id=1),
-    ]
-    balls[1].is_potted = True
-    assert rules.is_frame_over(balls) == True
 
 if __name__ == "__main__":
-    r = Rules(15)
-    p = [Player("Alice"), Player("Bob")]
-    rouge = Ball(x=0, y=0, color="red", points=1, ball_id=1)
-    noire = Ball(x=0, y=0, color="black", points=7, ball_id=7)
-    blanche = Ball(x=0, y=0, color="white", points=0, ball_id=0)
-
-    print("--- score_potted ---")
-    r.score_potted(rouge, p, 0)
-    print(f"score Alice après rouge : {p[0].score}")          # attendu : 1
-    print(f"next_ball_type : {r.next_ball_type}")              # attendu : colour
-    print(f"reds_on_table : {r.reds_on_table}")                # attendu : 14
-
-    r2 = Rules(15)
-    p2 = [Player("Alice"), Player("Bob")]
-    r2.next_ball_type = 'colour'
-    r2.score_potted(noire, p2, 0)
-    print(f"score Alice après noire : {p2[0].score}")          # attendu : 7
-    print(f"next_ball_type : {r2.next_ball_type}")             # attendu : red
-
-    print("\n--- detect_foul ---")
-    print(r.detect_foul([], white_potted=True))                # attendu : non vide
-    print(r.detect_foul([], white_potted=False))               # attendu : ""
-    r3 = Rules(15)
-    r3.next_ball_type = 'red'
-    print(r3.detect_foul([noire], white_potted=False))         # attendu : non vide
-    r3.next_ball_type = 'colour'
-    print(r3.detect_foul([rouge], white_potted=False))         # attendu : non vide
-
-    print("\n--- apply_foul ---")
-    p3 = [Player("Alice"), Player("Bob")]
-    r4 = Rules(15)
-    r4.apply_foul("Faute", p3, current_idx=0)
-    print(f"score Bob après faute d'Alice : {p3[1].score}")    # attendu : 4
-    print(f"in_hand : {r4.in_hand}")                           # attendu : True
-
-    print("\n--- is_frame_over ---")
-    balls = [blanche, rouge]
-    print(r.is_frame_over(balls))                              # attendu : False
-    rouge.is_potted = True
-    print(r.is_frame_over(balls))                              # attendu : True
-
-    print("\n--- detect_foul ---")
-    print(r.detect_foul([], white_potted=True))  # attendu : non vide, pénalité 4
-    r3 = Rules(15)
-    r3.next_ball_type = 'red'
-    foul, penalite = r3.detect_foul([noire], white_potted=False)
-    print(f"faute : {foul}")  # attendu : non vide
-    print(f"pénalité noire : {penalite}")  # attendu : 7
-    r3.next_ball_type = 'colour'
-    print(r3.detect_foul([rouge], white_potted=False))  # attendu : non vide
+    unittest.main(verbosity=2)
