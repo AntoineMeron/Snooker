@@ -44,6 +44,15 @@ class Tables:
         self.poches = self.create_poche()
 
         self.restitution_coef =0.8
+        # Spots réglementaires des couleurs (id_bille : position)
+        self.colour_spots = {
+            16: np.array([self.largeur / 2 - 18.4, self.baulk_line_y]),  # jaune
+            17: np.array([self.largeur / 2 + 18.4, self.baulk_line_y]),  # verte
+            18: np.array([self.largeur / 2, self.baulk_line_y]),  # marron
+            19: np.array([self.largeur / 2, self.longueur / 2]),  # bleue
+            20: np.array([self.largeur / 2, self.longueur * 0.74]),  # rose
+            21: np.array([self.largeur / 2, self.longueur * 0.89]),  # noire
+        }
 
     def create_poche(self) -> list:
         """
@@ -215,9 +224,10 @@ class Tables:
                 return candidate
 
             # On essaie une nouvelle position dans le D
+            RAYON = 2.625  # rayon fixe, identique pour toutes les billes
             offset = np.array([
-                math.cos(angle_rad) * ball.rayon * 3,
-                math.sin(angle_rad) * ball.rayon * 3,
+                math.cos(angle_rad) * RAYON * 3,
+                math.sin(angle_rad) * RAYON * 3,
             ])
             new_candidate = self.baulk_center + offset
 
@@ -228,3 +238,51 @@ class Tables:
 
         # En dernier recours, on retourne le centre même si occupé
         return self.baulk_center.copy()
+
+    def replace_colour(self, ball: Ball) -> None:
+        """
+        Replace une bille couleur sur son spot réglementaire.
+        Si le spot est occupé, cherche le spot libre le plus valorisé.
+
+        Parameters
+        ----------
+        ball : Ball
+            La bille couleur à replacer.
+        """
+        # Ordre de priorité si le spot est occupé : du plus valorisé au moins
+        priority_order = [21, 20, 19, 18, 17, 16]  # noire → jaune
+
+        spot = self.colour_spots.get(ball.id)
+        if spot is None:
+            return  # bille inconnue
+
+        # On vérifie si le spot est libre
+        if self._spot_is_free(spot):
+            ball.pos = spot.copy()
+            ball.vit = np.zeros(2, dtype=float)
+            ball.is_potted = False
+            return
+
+        # Spot occupé : on cherche le spot libre le plus valorisé
+        for bid in priority_order:
+            candidate = self.colour_spots[bid]
+            if self._spot_is_free(candidate):
+                ball.pos = candidate.copy()
+                ball.vit = np.zeros(2, dtype=float)
+                ball.is_potted = False
+                return
+
+        # En dernier recours : on place derrière la noire
+        ball.pos = np.array([self.largeur / 2, self.longueur * 0.92])
+        ball.vit = np.zeros(2, dtype=float)
+        ball.is_potted = False
+
+    def _spot_is_free(self, spot: np.ndarray) -> bool:
+        """
+        Vérifie si un spot est libre (aucune bille active ne le chevauche).
+        """
+        for b in self.get_active_balls():
+            dist = float(np.linalg.norm(b.pos - spot))
+            if dist < b.rayon * 2:
+                return False
+        return True
