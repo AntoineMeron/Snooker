@@ -183,28 +183,114 @@ class TableView:
             )
 
     def _draw_trajectory(self, angle_deg: float, force: float) -> None:
-        """
-        Dessine un trait pointillé blanc depuis la bille blanche.
-        La longueur est proportionnelle à la force.
-
-        Parameters
-        ----------
-        angle_deg : float
-            Angle du tir en degrés.
-        force : float
-            Force du tir (0-100).
-        """
         white = self.table.get_ball_id(0)
         if white is None or white.is_potted:
             return
 
-        longueur_px = (force / 100) * 200  # max 200 px
         angle_rad = math.radians(angle_deg)
+        dx = math.cos(angle_rad)
+        dy = math.sin(angle_rad)
 
-        px, py = self.to_px(white.pos[0], white.pos[1])
-        end_px = px + longueur_px * math.cos(angle_rad)
-        end_py = py - longueur_px * math.sin(angle_rad)  # Y inversé
+        x, y = white.pos[0], white.pos[1]
+        r = white.rayon
 
-        pen = QPen(QColor("white"), 1)
-        pen.setStyle(Qt.DashLine)
-        self.scene.addLine(px, py, end_px, end_py, pen)
+        step = 0.5
+        max_dist = 500
+
+        end_x, end_y = x, y
+        hit_ball = None
+        hit_wall = False
+
+        for _ in range(int(max_dist / step)):
+            nx = end_x + dx * step
+            ny = end_y + dy * step
+
+            # Bandes
+            if nx - r < 0 or nx + r > self.table.largeur:
+                hit_wall = True
+                break
+            if ny - r < 0 or ny + r > self.table.longueur:
+                hit_wall = True
+                break
+
+            # Collision bille
+            for ball in self.table.get_active_balls():
+                if ball.id == 0:
+                    continue
+                dist = math.sqrt((nx - ball.pos[0]) ** 2 + (ny - ball.pos[1]) ** 2)
+                if dist <= r + ball.rayon:
+                    hit_ball = ball
+                    break
+
+            if hit_ball or hit_wall:
+                break
+
+            end_x, end_y = nx, ny
+
+        # ── Trait principal blanche ──────────────────
+        px_start, py_start = self.to_px(x, y)
+        px_end, py_end = self.to_px(end_x, end_y)
+
+        pen_white = QPen(QColor("white"), 1)
+        pen_white.setStyle(Qt.DashLine)
+        self.scene.addLine(px_start, py_start, px_end, py_end, pen_white)
+
+        # ── Impact sur une bille ─────────────────────
+        if hit_ball:
+            # Cercle fantôme à la position d'impact
+            r_px = r * self.scale_avg
+            self.scene.addEllipse(
+                px_end - r_px, py_end - r_px,
+                r_px * 2, r_px * 2,
+                QPen(QColor("white"), 1),
+                QBrush(Qt.transparent)
+            )
+
+            # Vecteur normal de la blanche vers la bille cible
+            nx_vec = hit_ball.pos[0] - end_x
+            ny_vec = hit_ball.pos[1] - end_y
+            norm = math.sqrt(nx_vec ** 2 + ny_vec ** 2)
+            if norm > 0:
+                nx_vec /= norm
+                ny_vec /= norm
+
+            # Trait direction bille cible (jaune)
+            longueur_cible = 40  # cm
+            cible_end_x = hit_ball.pos[0] + nx_vec * longueur_cible
+            cible_end_y = hit_ball.pos[1] + ny_vec * longueur_cible
+            px_c1, py_c1 = self.to_px(hit_ball.pos[0], hit_ball.pos[1])
+            px_c2, py_c2 = self.to_px(cible_end_x, cible_end_y)
+
+            pen_yellow = QPen(QColor("yellow"), 1)
+            pen_yellow.setStyle(Qt.DashLine)
+            self.scene.addLine(px_c1, py_c1, px_c2, py_c2, pen_yellow)
+
+            # Vecteur tangentiel blanche après impact (perpendiculaire au normal)
+            # La blanche repart perpendiculairement à l'axe de collision
+            tx = -ny_vec  # tangente = perpendiculaire au normal
+            ty = nx_vec
+
+            # Produit scalaire pour savoir de quel côté
+            dot = dx * tx + dy * ty
+            if dot < 0:
+                tx, ty = -tx, -ty
+
+            longueur_blanche = 30  # cm
+            blanche_end_x = end_x + tx * longueur_blanche
+            blanche_end_y = end_y + ty * longueur_blanche
+            px_b1, py_b1 = self.to_px(end_x, end_y)
+            px_b2, py_b2 = self.to_px(blanche_end_x, blanche_end_y)
+
+            pen_blue = QPen(QColor("#88CCFF"), 1)
+            pen_blue.setStyle(Qt.DashLine)
+            self.scene.addLine(px_b1, py_b1, px_b2, py_b2, pen_blue)
+
+        # ── Impact sur une bande ─────────────────────
+        elif hit_wall:
+            r_px = r * self.scale_avg
+            self.scene.addEllipse(
+                px_end - r_px, py_end - r_px,
+                r_px * 2, r_px * 2,
+                QPen(QColor("white"), 1),
+                QBrush(Qt.transparent)
+            )
