@@ -48,7 +48,7 @@ class Rules:
         self.free_ball: bool = False
         self.in_hand: bool = True          # début de frame : bille blanche en main
 
-    def score_potted(self, ball: Ball, players: list[Player], current_idx: int) -> None:
+    def score_potted(self, ball: Ball, players: list[Player], current_idx: int, table) -> None:
         """
         Attribue les points d'une bille empochée au joueur courant,
         si l'empochage est valide selon les règles.
@@ -83,7 +83,8 @@ class Rules:
             player.add_points(ball.points)
             if self.reds_on_table > 0:
                 self.next_ball_type = 'red'  # il reste des rouges : on revient aux rouges
-            # sinon on reste sur 'colour' pour empocher les couleurs dans l'ordre
+                # sinon on reste sur 'colour' pour empocher les couleurs dans l'ordre
+                table.replace_colour(ball)
 
     def detect_foul(self, potted_balls: list[Ball], white_potted: bool) -> tuple[str, int]:
         """

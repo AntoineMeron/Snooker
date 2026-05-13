@@ -153,7 +153,7 @@ class GameController:
 
             else:
                 for ball in self._potted_this_shot:
-                    self.rules.score_potted(ball, self.players, self.current_player_index)
+                    self.rules.score_potted(ball, self.players, self.current_player_index, self.table)
 
                 if self._potted_this_shot:
                     print(f"{self.current_player().name} rejoue !")
