@@ -3,6 +3,7 @@ Représente la table de snooker, ses poches, ses billes.
 """
 
 import numpy as np
+import math
 from objets.ball import Ball
 from objets.poche import Poche
 
@@ -41,6 +42,8 @@ class Tables:
 
         self.balls = []
         self.poches = self.create_poche()
+
+        self.restitution_coef =0.8
 
     def create_poche(self) -> list:
         """
@@ -181,3 +184,47 @@ class Tables:
                 self.balls.append(Ball(x, y, "red", 1, ball_id))
                 ball_id += 1
 
+    def get_valid_baulk_position(self) -> np.ndarray:
+        """
+        Retourne une position valide dans la zone D pour replacer la bille blanche.
+        Essaie le centre du D en premier, puis cherche une position libre
+        en tournant autour du centre si celui-ci est occupé.
+
+        Returns
+        -------
+        np.ndarray
+            Position [x, y] valide dans la zone D.
+        """
+        # On essaie d'abord le centre du D
+        candidate = self.baulk_center.copy()
+
+        active_balls = [b for b in self.balls if not b.is_potted and b.id != 0]
+
+        # On vérifie que la position candidate ne chevauche aucune bille
+        for angle_deg in range(0, 360, 15):  # on tourne par pas de 15°
+            angle_rad = math.radians(angle_deg)
+            valid = True
+
+            for ball in active_balls:
+                dist = float(np.linalg.norm(candidate - ball.pos))
+                if dist < ball.rayon * 2 + 0.5:  # chevauchement détecté
+                    valid = False
+                    break
+
+            if valid:
+                return candidate
+
+            # On essaie une nouvelle position dans le D
+            offset = np.array([
+                math.cos(angle_rad) * ball.rayon * 3,
+                math.sin(angle_rad) * ball.rayon * 3,
+            ])
+            new_candidate = self.baulk_center + offset
+
+            # On vérifie que la nouvelle position est bien dans le D
+            dist_center = float(np.linalg.norm(new_candidate - self.baulk_center))
+            if dist_center <= self.baulk_zone_rayon and new_candidate[1] <= self.baulk_line_y:
+                candidate = new_candidate
+
+        # En dernier recours, on retourne le centre même si occupé
+        return self.baulk_center.copy()
