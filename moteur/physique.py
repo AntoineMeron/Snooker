@@ -73,9 +73,6 @@ class Physique :
     def resolve_ball_collision(self, b1 : Ball, b2 : Ball)-> None:
         """
         Gère la collision entre 2 billes
-        :param b1:
-        :param b2:
-        :return:
         """
 
         delta = b2.pos - b1.pos
@@ -123,32 +120,32 @@ class Physique :
         d'énergie sur la bande). La bille est repositionnée hors de
         la bande avant d'inverser la composante de vitesse concernée.
 
-        :param ball:
-        :return:
         """
         r = ball.rayon
         x, y = ball.pos
+        k = self.table.restitution_coef
 
         #Côté gauche
         if x - r < 0:
             ball.pos[0] = r
-            ball.vit[0] = abs(ball.vit[0]) #on inverse la composante vx pour que la balle reparte avec un angle de 45° avec la normale
+            ball.vit[0] = abs(ball.vit[0])*k #on inverse la composante vx pour que la balle reparte avec un angle de 45° avec la normale
         #Si la balle allait vers le côté gauche, vx < 0 donc on inverse bien la composante
+        #et on multiplie par le coef de restitution de la table
 
         #Côté droit
         elif x + r > self.table.largeur:
             ball.pos[0] = self.table.largeur- r
-            ball.vit[0] = -abs(ball.vit[0])
+            ball.vit[0] = -abs(ball.vit[0])*k
 
         #En bas
         if y - r < 0:
             ball.pos[1] = r
-            ball.vit[1] = abs(ball.vit[1])
+            ball.vit[1] = abs(ball.vit[1])*k
 
         #En haut
         elif y + r > self.table.longueur:
             ball.pos[1] = self.table.longueur - r
-            ball.vit[1] = -abs(ball.vit[1])
+            ball.vit[1] = -abs(ball.vit[1])*k
 
     def check_pocket(self, ball:Ball)-> None:
         """

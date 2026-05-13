@@ -138,28 +138,27 @@ class GameController:
         if self.physique.all_stopped():
             self.state = 'aiming'
 
-            # On vérifie si la bille blanche est dans la liste des empochées
             white_potted = any(b.id == 0 for b in self._potted_this_shot)
             foul, penalite = self.rules.detect_foul(self._potted_this_shot, white_potted)
 
             if foul:
-                # Faute : les points vont à l'adversaire et on passe le tour
                 print(foul)
                 self.rules.apply_foul(foul, penalite, self.players, self.current_player_index)
                 self.switch_turn()
+
+                # Si la blanche a été empochée, on la replace dans le D  ← ajout
+                if white_potted:
+                    pos = self.table.get_valid_baulk_position()
+                    self.table.place_white_ball(pos[0], pos[1])
             else:
-                # Coup valide : on attribue les points au joueur courant
                 for ball in self._potted_this_shot:
                     self.rules.score_potted(ball, self.players, self.current_player_index)
 
                 if self._potted_this_shot:
-                    # Le joueur a empoché au moins une bille : il rejoue
                     print(f"{self.current_player().name} rejoue !")
                 else:
-                    # Aucune bille empochée : on passe le tour
                     self.switch_turn()
 
-            # On vérifie si la frame est terminée
             if self.rules.is_frame_over(self.table.balls):
                 print("Frame terminée !")
                 print(f"{self.players[0].name} : {self.players[0].score} pts")
