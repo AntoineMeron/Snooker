@@ -7,9 +7,12 @@ dans le QGraphicsView de Qt Designer.
 
 import math
 
+
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene
-from PyQt5.QtGui import QColor, QBrush, QPen
-from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor, QBrush, QPen, QCursor
+from PyQt5.QtCore import Qt, QPointF, pyqtSignal
+from PyQt5.QtWidgets import QGraphicsView
+
 
 
 class TableView:
@@ -75,7 +78,7 @@ class TableView:
     # Dessin principal
     # ------------------------------------------------------------------
 
-    def draw(self, angle_deg: float = 90.0, force: float = 60.0) -> None:
+    def draw(self, angle_deg: float = 90.0, force: float = 60.0,state: str = 'aiming') -> None:
         """
         Efface et redessine toute la scène.
         À appeler à chaque frame.
@@ -86,12 +89,19 @@ class TableView:
             Angle courant du slider pour la trajectoire.
         force : float
             Force courante du slider pour la longueur du trait.
+        state : str
+            Etat du jeu
         """
         self.scene.clear()
         self._draw_table()
         self._draw_baulk()
         self._draw_pockets()
-        self._draw_trajectory(angle_deg, force)
+
+        self._draw_balls()
+
+        if state == 'aiming':
+            self._draw_trajectory(angle_deg, force)
+
         self._draw_balls()
 
     # ------------------------------------------------------------------
@@ -195,22 +205,37 @@ class TableView:
         r = white.rayon
 
         step = 0.5
-        max_dist = 500
+        # Distance max proportionnelle à la force
+        max_dist = (force / 100) * 300  # force 100 = 300 cm max
 
         end_x, end_y = x, y
         hit_ball = None
         hit_wall = False
+        dist_parcourue = 0
 
-        for _ in range(int(max_dist / step)):
+        # ── Phase 1 : trajet jusqu'au premier obstacle ──
+        while dist_parcourue < max_dist:
             nx = end_x + dx * step
             ny = end_y + dy * step
+            dist_parcourue += step
 
             # Bandes
-            if nx - r < 0 or nx + r > self.table.largeur:
+            if nx - r < 0:
+                nx = r
                 hit_wall = True
-                break
-            if ny - r < 0 or ny + r > self.table.longueur:
+            elif nx + r > self.table.largeur:
+                nx = self.table.largeur - r
                 hit_wall = True
+
+            if ny - r < 0:
+                ny = r
+                hit_wall = True
+            elif ny + r > self.table.longueur:
+                ny = self.table.longueur - r
+                hit_wall = True
+
+            if hit_wall:
+                end_x, end_y = nx, ny
                 break
 
             # Collision bille
@@ -222,22 +247,22 @@ class TableView:
                     hit_ball = ball
                     break
 
-            if hit_ball or hit_wall:
+            if hit_ball:
                 break
 
             end_x, end_y = nx, ny
 
-        # ── Trait principal blanche ──────────────────
+        # ── Dessin trait principal blanche ──
         px_start, py_start = self.to_px(x, y)
         px_end, py_end = self.to_px(end_x, end_y)
-
         pen_white = QPen(QColor("white"), 1)
         pen_white.setStyle(Qt.DashLine)
         self.scene.addLine(px_start, py_start, px_end, py_end, pen_white)
 
-        # ── Impact sur une bille ─────────────────────
+        dist_restante = max_dist - dist_parcourue
+
+        # ── Impact sur une bille ──
         if hit_ball:
-            # Cercle fantôme à la position d'impact
             r_px = r * self.scale_avg
             self.scene.addEllipse(
                 px_end - r_px, py_end - r_px,
@@ -246,7 +271,7 @@ class TableView:
                 QBrush(Qt.transparent)
             )
 
-            # Vecteur normal de la blanche vers la bille cible
+            # Normal de collision (blanche → bille cible)
             nx_vec = hit_ball.pos[0] - end_x
             ny_vec = hit_ball.pos[1] - end_y
             norm = math.sqrt(nx_vec ** 2 + ny_vec ** 2)
@@ -254,38 +279,33 @@ class TableView:
                 nx_vec /= norm
                 ny_vec /= norm
 
-            # Trait direction bille cible (jaune)
-            longueur_cible = 40  # cm
+            # Trait jaune : direction bille cible, longueur proportionnelle
+            longueur_cible = dist_restante * 0.3
             cible_end_x = hit_ball.pos[0] + nx_vec * longueur_cible
             cible_end_y = hit_ball.pos[1] + ny_vec * longueur_cible
             px_c1, py_c1 = self.to_px(hit_ball.pos[0], hit_ball.pos[1])
             px_c2, py_c2 = self.to_px(cible_end_x, cible_end_y)
-
             pen_yellow = QPen(QColor("yellow"), 1)
             pen_yellow.setStyle(Qt.DashLine)
             self.scene.addLine(px_c1, py_c1, px_c2, py_c2, pen_yellow)
 
-            # Vecteur tangentiel blanche après impact (perpendiculaire au normal)
-            # La blanche repart perpendiculairement à l'axe de collision
-            tx = -ny_vec  # tangente = perpendiculaire au normal
+            # Trait bleu : direction blanche après impact, longueur proportionnelle
+            tx = -ny_vec
             ty = nx_vec
-
-            # Produit scalaire pour savoir de quel côté
             dot = dx * tx + dy * ty
             if dot < 0:
                 tx, ty = -tx, -ty
 
-            longueur_blanche = 30  # cm
+            longueur_blanche = dist_restante * 0.2
             blanche_end_x = end_x + tx * longueur_blanche
             blanche_end_y = end_y + ty * longueur_blanche
             px_b1, py_b1 = self.to_px(end_x, end_y)
             px_b2, py_b2 = self.to_px(blanche_end_x, blanche_end_y)
-
             pen_blue = QPen(QColor("#88CCFF"), 1)
             pen_blue.setStyle(Qt.DashLine)
             self.scene.addLine(px_b1, py_b1, px_b2, py_b2, pen_blue)
 
-        # ── Impact sur une bande ─────────────────────
+        # ── Impact sur une bande : rebond + continuation ──
         elif hit_wall:
             r_px = r * self.scale_avg
             self.scene.addEllipse(
@@ -294,3 +314,107 @@ class TableView:
                 QPen(QColor("white"), 1),
                 QBrush(Qt.transparent)
             )
+
+            # Calcul du rebond : on inverse la composante qui a touché la bande
+            if end_x <= r or end_x >= self.table.largeur - r:
+                dx = -dx  # rebond horizontal
+            if end_y <= r or end_y >= self.table.longueur - r:
+                dy = -dy  # rebond vertical
+
+            # Trait après rebond, longueur = distance restante
+            rebond_end_x = end_x + dx * dist_restante * 0.4
+            rebond_end_y = end_y + dy * dist_restante * 0.4
+
+            # Clamp dans la table
+            rebond_end_x = max(r, min(self.table.largeur - r, rebond_end_x))
+            rebond_end_y = max(r, min(self.table.longueur - r, rebond_end_y))
+
+            px_r1, py_r1 = self.to_px(end_x, end_y)
+            px_r2, py_r2 = self.to_px(rebond_end_x, rebond_end_y)
+            pen_rebond = QPen(QColor("white"), 1)
+            pen_rebond.setStyle(Qt.DotLine)  # pointillé plus fin pour différencier
+            self.scene.addLine(px_r1, py_r1, px_r2, py_r2, pen_rebond)
+
+class SnookerView(QGraphicsView):
+    """
+    QGraphicsView personnalisé qui capture les événements souris
+    pour viser et tirer.
+
+    Signals
+    -------
+    shot_requested : pyqtSignal(float, float)
+        Émis quand le joueur relâche la souris avec (angle_deg, force).
+    aiming : pyqtSignal(float, float)
+        Émis pendant le glissement avec (angle_deg, force) pour
+        mettre à jour la trajectoire en temps réel.
+    """
+
+    shot_requested = pyqtSignal(float, float)
+    aiming = pyqtSignal(float, float)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._dragging = False
+        self._start_pos = None   # position souris au clic (pixels scène)
+        self.white_pos = None    # position bille blanche (pixels scène)
+
+    def mousePressEvent(self, event) -> None:
+        """Début du glissement — clic gauche près de la blanche."""
+        if event.button() == Qt.LeftButton:
+            self._dragging = True
+            self._start_pos = self.mapToScene(event.pos())
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        """Pendant le glissement — met à jour la trajectoire."""
+        if self._dragging and self._start_pos is not None:
+            current = self.mapToScene(event.pos())
+            angle, force = self._compute_shot(current)
+            self.aiming.emit(angle, force)
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:
+        """Relâchement — déclenche le tir."""
+        if event.button() == Qt.LeftButton and self._dragging:
+            current = self.mapToScene(event.pos())
+            angle, force = self._compute_shot(current)
+            self.shot_requested.emit(angle, force)
+            self._dragging = False
+            self._start_pos = None
+        super().mouseReleaseEvent(event)
+
+    def _compute_shot(self, current_pos: QPointF):
+        """
+        Calcule l'angle et la force depuis le glissement souris.
+
+        Le vecteur va du point de relâchement vers la blanche
+        (on tire dans la direction opposée au glissement).
+
+        Parameters
+        ----------
+        current_pos : QPointF
+            Position actuelle de la souris en coordonnées scène.
+
+        Returns
+        -------
+        tuple(float, float)
+            (angle_deg, force) — force entre 0 et 100.
+        """
+        if self._start_pos is None or self.white_pos is None:
+            return 90.0, 50.0
+
+        # Vecteur du glissement (depuis blanche vers souris)
+        dx = self._start_pos.x() - current_pos.x()
+        dy = -(self._start_pos.y() - current_pos.y())  # Y inversé
+
+        # Angle en degrés
+        angle_deg = math.degrees(math.atan2(dy, dx))
+
+        # Force proportionnelle à la distance (max 150 px → force 100)
+        dist = math.sqrt(
+            (current_pos.x() - self._start_pos.x())**2 +
+            (current_pos.y() - self._start_pos.y())**2
+        )
+        force = min(100.0, dist / 1.5)  # 150 px = force 100
+
+        return angle_deg, force

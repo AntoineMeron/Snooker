@@ -10,7 +10,7 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QFont
 
 from IHM.IHM import Ui_MainWindow
-from IHM.table_view import TableView
+from IHM.table_view import TableView, SnookerView
 from state.game_controller import GameController
 
 
@@ -28,36 +28,49 @@ class MainWindow(QMainWindow):
         Timer qui fait tourner la boucle de jeu à 60 fps.
     """
 
-    def __init__(self,name1:str,name2:str) -> None:
+    def __init__(self, name1: str = "Joueur 1", name2: str = "Joueur 2") -> None:
+
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
         self.gc = GameController(name1, name2)
 
+        geo = self.ui.Table.geometry()
+        parent = self.ui.Table.parent()
+        self.ui.Table.hide()
+        snooker_view = SnookerView(parent)
+        snooker_view.setGeometry(geo)
+        snooker_view.show()
+        self.ui.Table = snooker_view
+
         self.table_view = TableView(self.ui.Table, self.gc.table)
-        self.table_view.draw()
 
-        self._update_labels()
+        self._angle = 90.0
+        self._force = 50.0
 
-        self.ui.slider_angle.valueChanged.connect(self._update_label_angle)
-        self.ui.slider_force.valueChanged.connect(self._update_label_force)
+        self.ui.Table.aiming.connect(self._on_aiming)
+        self.ui.Table.shot_requested.connect(self._on_shot)
 
-        self.ui.btn_tirer.clicked.connect(self._tirer)
         self.ui.btn_reset.clicked.connect(self._reset_frame)
         self.ui.btn_save.clicked.connect(self._save)
         self.ui.btn_load.clicked.connect(self._load)
 
-        self.timer = QTimer()
+        self._update_labels()
+
+        self.timer = QTimer(self)
         self.timer.timeout.connect(self._game_loop)
         self.timer.start(16)
 
+
     def _game_loop(self) -> None:
-        """Appelée 60x/s — avance la physique, redessine, met à jour les labels."""
         self.gc.run_frame()
-        angle = self.ui.slider_angle.value()
-        force = self.ui.slider_force.value()
-        self.table_view.draw(angle_deg=float(angle), force=float(force))
+        self.ui.Table.white_pos = self._get_white_px()
+        self.table_view.draw(
+            angle_deg=self._angle,
+            force=self._force,
+            state=self.gc.state
+        )
         self._update_labels()
 
     def _update_labels(self) -> None:
@@ -136,3 +149,30 @@ class MainWindow(QMainWindow):
             self.ui.label_etat.setText("Partie chargée")
         except FileNotFoundError:
             self.ui.label_etat.setText("Aucune sauvegarde trouvée")
+
+    def _get_white_px(self):
+        """Retourne la position de la blanche en pixels scène."""
+        white = self.gc.table.get_ball_id(0)
+        if white:
+            return self.table_view.to_px(white.pos[0], white.pos[1])
+        return None
+
+    def _on_aiming(self, angle: float, force: float) -> None:
+        """Met à jour la trajectoire pendant le glissement."""
+        if self.gc.state == 'aiming':
+            self._angle = angle
+            self._force = force
+
+    def _on_shot(self, angle: float, force: float) -> None:
+        """Déclenche le tir au relâchement."""
+        if self.gc.state == 'aiming':
+            self._angle = angle
+            self._force = force
+            self.gc.handle_shot(angle_deg=angle, force=force)
+
+    def _game_loop(self) -> None:
+        self.gc.run_frame()
+        # Met à jour la position de la blanche pour le snap
+        self.ui.Table.white_pos = self._get_white_px()
+        self.table_view.draw(angle_deg=self._angle, force=self._force)
+        self._update_labels()
