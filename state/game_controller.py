@@ -11,6 +11,7 @@ Responsabilités :
 """
 
 import json
+import numpy as np
 from objets.ball import Ball
 from objets.table import Tables
 from moteur.physique import Physique
@@ -35,7 +36,7 @@ class GameController:
     current_player_index : int
         Index du joueur dont c'est le tour (0 ou 1).
     state : str
-        État courant du jeu : 'aiming' (joueur vise) ou 'rolling' (billes en mouvement).
+        État courant du jeu : 'aiming' (joueur vise), 'rolling' (billes en mouvement) ou 'placing' (joueur place la bille blanche dans le D)
     """
 
     def __init__(self, name1 : str ="Joueur 1", name2 : str = 'Joueur 2')-> None:
@@ -148,8 +149,8 @@ class GameController:
 
                 # Si la blanche a été empochée, on la replace dans le D  ← ajout
                 if white_potted:
-                    pos = self.table.get_valid_baulk_position()
-                    self.table.place_white_ball(pos[0], pos[1])
+                    self.state = 'placing'
+
             else:
                 for ball in self._potted_this_shot:
                     self.rules.score_potted(ball, self.players, self.current_player_index)
@@ -214,3 +215,44 @@ class GameController:
             ball.vit[1] = b_data["vy"]
             ball.is_potted = b_data["is_potted"]
             self.table.balls.append(ball)
+
+    def place_white_ball(self, x: float, y: float) -> bool:
+        """
+        Place la bille blanche à la position choisie par le joueur.
+        N'accepte la position que si elle est dans la zone D et valide.
+
+        Parameters
+        ----------
+        x : float
+            Position X souhaitée.
+        y : float
+            Position Y souhaitée.
+
+        Returns
+        -------
+        bool
+            True si la position a été acceptée, False sinon.
+        """
+        if self.state != 'placing':
+            return False
+
+        # Vérification 1 : position dans la zone D
+        if not self.table.in_baulk_zone(x, y):
+            print("Position hors de la zone D !")
+            return False
+
+        # Vérification 2 : pas de chevauchement avec une autre bille
+        white = self.table.get_ball_id(0)
+        for ball in self.table.get_active_balls():
+            if ball.id == 0:
+                continue
+            dist = float(np.linalg.norm(np.array([x, y]) - ball.pos))
+            if dist < white.rayon + ball.rayon:
+                print("Position occupée par une autre bille !")
+                return False
+
+        # Position valide : on place la blanche et on repasse en mode visée
+        self.table.place_white_ball(x, y)
+        self.state = 'aiming'
+        self.rules.in_hand = False
+        return True
