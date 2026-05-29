@@ -45,6 +45,7 @@ class GameState:
         scores_snapshot: dict = None,
         foul_flag: bool = False,
         phase: str = 'aiming',
+        next_ball_type:str='red'
     ) -> None:
         """
         Initialise un état de jeu.
@@ -70,6 +71,7 @@ class GameState:
         self.scores_snapshot: dict = scores_snapshot if scores_snapshot is not None else {}
         self.foul_flag: bool = foul_flag
         self.phase: str = phase
+        self.next_ball_type= next_ball_type
 
     # ------------------------------------------------------------------
     # Création d'un snapshot depuis GameController
@@ -118,6 +120,7 @@ class GameState:
             scores_snapshot=scores_snapshot,
             foul_flag=False,
             phase=gc.state,
+            next_ball_type=gc.next_ball_type,
         )
 
     # ------------------------------------------------------------------
@@ -140,6 +143,7 @@ class GameState:
             "scores_snapshot":    self.scores_snapshot,
             "foul_flag":          self.foul_flag,
             "phase":              self.phase,
+            "next_ball_type":     self.next_ball_type,
         }
 
     @staticmethod
@@ -164,6 +168,7 @@ class GameState:
             scores_snapshot=d["scores_snapshot"],
             foul_flag=d["foul_flag"],
             phase=d["phase"],
+            next_ball_type=d.get["next_ball_type","red"],
         )
 
     # ------------------------------------------------------------------

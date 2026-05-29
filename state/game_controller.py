@@ -18,6 +18,7 @@ from moteur.physique import Physique
 from objets.player import Player
 from moteur.rules import Rules
 from state.game_state import GameState
+from IA.ai_player import AIPlayer
 
 class GameController:
     """
@@ -39,27 +40,34 @@ class GameController:
         État courant du jeu : 'aiming' (joueur vise), 'rolling' (billes en mouvement) ou 'placing' (joueur place la bille blanche dans le D)
     """
 
-    def __init__(self, name1 : str ="Joueur 1", name2 : str = 'Joueur 2')-> None:
+    def __init__(self, name1 : str ="Joueur 1", name2 : str = 'Joueur 2', ai:bool=False, difficulty:str='medium')-> None:
         """
         Initialise le contrôleur de jeu.
 
         Parameters
         ----------
         name1 : str
-            Nom du premier joueur.
+            Nom du joueur 1 (toujours humain).
         name2 : str
-            Nom du second joueur.
+            Nom du joueur 2.
+        ai : bool
+            Si True, le joueur 2 est une IA.
+        difficulty : str
+            Niveau de l'IA : 'easy', 'medium' ou 'hard'.
         """
         self.table = Tables()
         self.physique = Physique(table=self.table)
         self.rules = Rules()
-
-        self.players = [Player(name1), Player(name2)]
         self.current_player_index = 0
 
         self.state = 'aiming'
         self.table.setup_balls()
         self._potted_this_shot = []
+
+        if ai:
+            self.players = [Player(name1), AIPlayer(name2, difficulty=difficulty)]
+        else:
+            self.players = [Player(name1), Player(name2)]
 
     def current_player(self) -> Player:
         """
@@ -124,11 +132,30 @@ class GameController:
     def run_frame(self) -> None:
         """
         Avance la simulation d'une frame.
+        Gère les actions automatiques de l'IA
 
         À appeler à chaque frame de l'interface graphique.
         Tant que des billes bougent, on fait avancer la physique.
         Quand tout s'arrête, on applique les règles puis on passe le tour.
         """
+        # ── Bloc IA 1 : placement de la blanche ──────────────────────────
+        # Si l'IA doit replacer la blanche dans le D, elle choisit
+        # automatiquement la meilleure position libre
+        if self.state == 'placing' and self.current_player().is_ai:
+            pos = self.table.get_valid_baulk_position()
+            self.place_white_ball(pos[0], pos[1])
+            # place_white_ball repasse state = 'aiming' si la position est valide
+            return
+
+        # ── Bloc IA 2 : choix et exécution du tir ────────────────────────
+        # Si c'est le tour de l'IA et que le jeu attend un tir,
+        # on génère automatiquement le meilleur tir possible
+        if self.state == 'aiming' and self.current_player().is_ai:
+            state_snapshot = GameState.from_game_controller(self)
+            shot = self.current_player().choose_shot(state_snapshot)
+            self.handle_shot(shot.angle_deg, shot.force)
+            return  # handle_shot passe state en 'rolling', on reviendra au prochain appel
+
         if self.state != 'rolling':
             return
 
