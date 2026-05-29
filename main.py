@@ -139,7 +139,7 @@
 #     print("\n  Test ASCII terminé avec succès.")
 #
 #
-# if __name__ == "__main__":
+# if __name__ == "__main__
 #     main()
 
 import sys
