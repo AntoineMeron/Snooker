@@ -28,13 +28,13 @@ class MainWindow(QMainWindow):
         Timer qui fait tourner la boucle de jeu à 60 fps.
     """
 
-    def __init__(self, name1: str = "Joueur 1", name2: str = "Joueur 2") -> None:
+    def __init__(self, name1: str = "Joueur 1", name2: str = "Joueur 2",ai:bool = False, difficulty:str = "medium") -> None:
 
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        self.gc = GameController(name1, name2)
+        self.gc = GameController(name1, name2,ai = ai, difficulty= difficulty)
 
         geo = self.ui.Table.geometry()
         parent = self.ui.Table.parent()
