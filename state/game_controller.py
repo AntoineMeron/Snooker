@@ -20,40 +20,63 @@ from moteur.rules import Rules
 from state.game_state import GameState
 from IA.ai_player import AIPlayer
 
+
 class GameController:
     """
     Orchestre toutes les classes du jeu.
+
+    Cette classe sert de point central entre la table, le moteur physique,
+    les règles, les joueurs et l'interface. Elle ne contient pas directement
+    la logique détaillée de la physique ou des règles, mais coordonne leur
+    utilisation pendant la partie.
 
     Attributes
     ----------
     table : Tables
         La table de jeu avec ses billes et ses poches.
     physique : Physique
-        Le moteur physique.
+        Le moteur physique utilisé pour déplacer les billes, gérer les
+        collisions et détecter les empochages.
     rules : Rules
-        Le moteur de règles.
+        Le moteur de règles utilisé pour détecter les fautes, attribuer
+        les points et gérer la progression de la frame.
     players : list[Player]
-        Liste des deux joueurs.
+        Liste des deux joueurs de la partie. Le second joueur peut être
+        une IA si l'option est activée.
     current_player_index : int
-        Index du joueur dont c'est le tour (0 ou 1).
+        Index du joueur dont c'est le tour, 0 ou 1.
     state : str
-        État courant du jeu : 'aiming' (joueur vise), 'rolling' (billes en mouvement) ou 'placing' (joueur place la bille blanche dans le D)
+        État courant du jeu : 'aiming' lorsque le joueur vise,
+        'rolling' lorsque les billes sont en mouvement ou 'placing'
+        lorsque la bille blanche doit être replacée.
+    _potted_this_shot : list
+        Liste des billes empochées pendant le tir courant.
     """
 
-    def __init__(self, name1 : str ="Joueur 1", name2 : str = 'Joueur 2', ai:bool=False, difficulty:str='medium')-> None:
+    def __init__(self, name1: str = "Joueur 1", name2: str = 'Joueur 2', ai: bool = False, difficulty: str = 'medium') -> None:
         """
         Initialise le contrôleur de jeu.
+
+        Crée la table, le moteur physique, les règles, les joueurs,
+        initialise les billes et place le jeu dans l'état de visée.
 
         Parameters
         ----------
         name1 : str
-            Nom du joueur 1 (toujours humain).
+            Nom du joueur 1, qui est toujours un joueur humain.
         name2 : str
             Nom du joueur 2.
         ai : bool
-            Si True, le joueur 2 est une IA.
+            Si True, le joueur 2 est une intelligence artificielle.
+            Sinon, le joueur 2 est un joueur humain.
         difficulty : str
-            Niveau de l'IA : 'easy', 'medium' ou 'hard'.
+            Niveau de difficulté de l'IA si le joueur 2 est contrôlé
+            automatiquement. Les valeurs possibles sont 'easy',
+            'medium' ou 'hard'.
+
+        Returns
+        -------
+        None
         """
         self.table = Tables()
         self.physique = Physique(table=self.table)
@@ -71,8 +94,11 @@ class GameController:
 
     def current_player(self) -> Player:
         """
-        Retourne le joueur dont c'est le tour.
-        Raccourci pour éviter d'écrire self.players[self.current_player_index] partout.
+        Retourne le joueur dont c'est actuellement le tour.
+
+        Cette méthode sert de raccourci pour éviter d'écrire
+        self.players[self.current_player_index] à plusieurs endroits
+        dans le code.
 
         Returns
         -------
@@ -83,7 +109,14 @@ class GameController:
 
     def switch_turn(self) -> None:
         """
-        Remet le break du joueur courant à zéro, puis passe la main.
+        Passe la main à l'autre joueur.
+
+        Le break du joueur courant est remis à zéro, puis l'index du
+        joueur courant est inversé afin d'alterner entre les deux joueurs.
+
+        Returns
+        -------
+        None
         """
         self.current_player().reset_break() #on remet le break du joueur qui prend le tour à 0
         self.current_player_index = 1 - self.current_player_index  # alterne entre 0 et 1
@@ -91,8 +124,15 @@ class GameController:
 
     def reset_frame(self) -> None:
         """
-        Remet les billes en position de début de frame.
-        Remet le score à zéro et redonne la main au joueur 1.
+        Réinitialise entièrement la frame en cours.
+
+        Les billes sont replacées dans leur position de départ, les scores
+        et les breaks sont remis à zéro, les règles sont recréées et la main
+        est redonnée au joueur 1.
+
+        Returns
+        -------
+        None
         """
         self.table.balls = []
         self.table.setup_balls()
@@ -106,17 +146,27 @@ class GameController:
         self.state = 'aiming'
         print("Nouvelle frame !")
 
-    def handle_shot(self, angle_deg : float, force : float) -> None:
+    def handle_shot(self, angle_deg: float, force: float) -> None:
         """
         Applique un tir sur la bille blanche.
-        Refuse le tir si les billes sont encore en mouvement.
+
+        Le tir est refusé si le jeu n'est pas dans l'état 'aiming',
+        c'est-à-dire si les billes sont encore en mouvement ou si la
+        bille blanche doit être replacée. Si la bille blanche existe,
+        le tir est transmis au moteur physique et l'état du jeu passe
+        à 'rolling'.
 
         Parameters
         ----------
         angle_deg : float
-            Angle du tir en degrés (0° = droite, sens antihoraire).
+            Angle du tir en degrés. 0° correspond à un tir vers la droite,
+            et les angles augmentent dans le sens antihoraire.
         force : float
-            Force du tir entre 0 et 100.
+            Force du tir, comprise entre 0 et 100.
+
+        Returns
+        -------
+        None
         """
         if self.state != 'aiming':
             return #on attend que les billes soient à l'arrêt pour viser
@@ -132,11 +182,20 @@ class GameController:
     def run_frame(self) -> None:
         """
         Avance la simulation d'une frame.
-        Gère les actions automatiques de l'IA
 
-        À appeler à chaque frame de l'interface graphique.
-        Tant que des billes bougent, on fait avancer la physique.
-        Quand tout s'arrête, on applique les règles puis on passe le tour.
+        Cette méthode est appelée régulièrement par l'interface graphique.
+        Elle gère les actions automatiques de l'IA, applique la physique
+        lorsque les billes sont en mouvement, accumule les billes empochées,
+        puis applique les règles lorsque toutes les billes sont arrêtées.
+
+        Si c'est le tour d'une IA et que le jeu attend un tir, un snapshot
+        de l'état courant est créé et transmis à l'IA afin qu'elle choisisse
+        automatiquement un tir. Si une faute est détectée, les points de
+        pénalité sont appliqués et le tour passe à l'autre joueur.
+
+        Returns
+        -------
+        None
         """
         # ── Bloc IA 1 : placement de la blanche ──────────────────────────
         # Si l'IA doit replacer la blanche dans le D, elle choisit
@@ -196,12 +255,21 @@ class GameController:
 
     def save_game(self, filepath: str = "save.json") -> None:
         """
-        Sauvegarde l'état de la partie dans un fichier JSON.
+        Sauvegarde l'état courant de la partie dans un fichier JSON.
+
+        La méthode crée d'abord un GameState à partir du GameController,
+        puis convertit ce snapshot en dictionnaire sérialisable avant
+        de l'écrire dans le fichier indiqué.
 
         Parameters
         ----------
         filepath : str
-            Chemin du fichier de sauvegarde.
+            Chemin du fichier de sauvegarde. Par défaut, la sauvegarde
+            est écrite dans le fichier "save.json".
+
+        Returns
+        -------
+        None
         """
         state = GameState.from_game_controller(self)  # on prend une photo
         data = state.to_dict()  # on la convertit en dict
@@ -212,10 +280,19 @@ class GameController:
         """
         Charge une partie depuis un fichier JSON.
 
+        Le fichier est lu, transformé en GameState, puis les informations
+        du snapshot sont appliquées au GameController : joueur courant,
+        phase de jeu, scores, breaks et état des billes.
+
         Parameters
         ----------
         filepath : str
-            Chemin du fichier de sauvegarde.
+            Chemin du fichier de sauvegarde à charger. Par défaut,
+            le fichier utilisé est "save.json".
+
+        Returns
+        -------
+        None
         """
         with open(filepath, "r") as f:
             data = json.load(f)
@@ -247,20 +324,26 @@ class GameController:
 
     def place_white_ball(self, x: float, y: float) -> bool:
         """
-        Place la bille blanche à la position choisie par le joueur.
-        N'accepte la position que si elle est dans la zone D et valide.
+        Place la bille blanche à la position choisie.
+
+        La position est acceptée uniquement si le jeu est dans l'état
+        'placing', si la position est dans la zone de baulk et si elle
+        ne provoque pas de chevauchement avec une autre bille active.
+        Si la position est valide, la bille blanche est placée et le jeu
+        repasse en état 'aiming'.
 
         Parameters
         ----------
         x : float
-            Position X souhaitée.
+            Position X souhaitée pour la bille blanche.
         y : float
-            Position Y souhaitée.
+            Position Y souhaitée pour la bille blanche.
 
         Returns
         -------
         bool
-            True si la position a été acceptée, False sinon.
+            True si la position a été acceptée et que la bille blanche
+            a été replacée, False sinon.
         """
         if self.state != 'placing':
             return False
