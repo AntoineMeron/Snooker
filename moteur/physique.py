@@ -239,11 +239,11 @@ class Physique :
                 return path
 
         ball.pos = ball.pos + ball.vit * self.dt
-        ball.vit = ball.vit* self.friction_coef
+        ball.vit = ball.vit* self.table.friction_coef
 
         # Arrêt net sous le seuil
-        if float(np.linalg.norm(ball.vel)) < 0.5:
-            ball.vel = np.zeros(2, dtype=float)
+        if float(np.linalg.norm(ball.vit)) < 0.5:
+            ball.vit = np.zeros(2, dtype=float)
 
         # Rebonds sur les bandes
         self.resolve_table_collision(ball)
