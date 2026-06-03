@@ -148,10 +148,14 @@ class TableView:
             QBrush(Qt.transparent)
         )
 
-        # 2 — Masque la moitié haute (au-dessus de la ligne de baulk)
+        # 2 — Masque la moitié haute, avec une marge pour éviter que le cercle dépasse
+        marge = 3
+
         self.scene.addRect(
-            cx - r_px, cy - r_px,
-            r_px * 2, r_px,
+            cx - r_px - marge,
+            cy - r_px - marge,
+            r_px * 2 + 2 * marge,
+            (baulk_py - (cy - r_px)) + marge,
             QPen(Qt.transparent),
             QBrush(QColor("#2d8a2d"))
         )

@@ -16,19 +16,43 @@ class Tables:
         - largeur  : 180 cm
 
     Le repère (0, 0) est le coin inférieur gauche du tapis.
+
+    Attributes
+    ----------
+    largeur : float
+        Largeur intérieure de la table en cm (axe X).
+    longueur : float
+        Longueur intérieure de la table en cm (axe Y).
+    friction_coef : float
+        Coefficient de frottement du tapis appliqué à chaque frame.
+    restitution_coef : float
+        Coefficient de restitution des bandes (0.8 ≈ réaliste).
+    baulk_line_y : float
+        Position Y de la ligne de baulk en cm.
+    baulk_center : np.ndarray
+        Centre du demi-cercle D en cm.
+    baulk_zone_rayon : float
+        Rayon du demi-cercle D en cm (29.2 réglementaire).
+    balls : list[Ball]
+        Liste de toutes les billes de la table (empochées ou non).
+    poches : list[Poche]
+        Liste des 6 poches de la table.
+    colour_spots : dict[int, np.ndarray]
+        Positions réglementaires des billes couleurs, indexées par ball_id.
     """
 
     def __init__(self,largeur:float = 180, longueur:float = 370 )->None:
         """
-        Initialise la table avec ses dimensions et crée les 6 poches.
+        Initialise la table avec ses dimensions, ses poches et ses spots réglementaires.
 
         Parameters
         ----------
         largeur : float
-            La largeur de la table
+            Largeur intérieure en cm. 180 par défaut (réglementaire).
         longueur : float
-            La longueur de la table
+            Longueur intérieure en cm. 370 par défaut (réglementaire).
         """
+
         self.largeur = largeur
         self.longueur = longueur
 
@@ -77,18 +101,28 @@ class Tables:
 
     def add_ball(self,ball:Ball)->None:
         """
-        Ajoute une bille sur la table
+        Ajoute une bille à la liste des billes de la table.
+
+        Parameters
+        ----------
+        ball : Ball
+            La bille à ajouter.
         """
         self.balls.append(ball)
 
     def get_ball_id(self,ball_id:int)->int:
         """
-        Retourne la bille avec l'identifiant de la bille.
+        Retourne la bille correspondant à l'identifiant donné.
 
         Parameters
         ----------
         ball_id : int
             Identifiant de la bille recherchée.
+
+        Returns
+        -------
+        Ball | None
+            La bille si elle existe, None sinon.
         """
         for ball in self.balls:
             if ball.id == ball_id:
@@ -97,13 +131,23 @@ class Tables:
 
     def get_active_balls(self)->list:
         """
-        Retourne la liste des billes sur la table non empochées.
+        Retourne la liste des billes encore en jeu (non empochées).
+
+        Returns
+        -------
+        list[Ball]
+            Liste des billes dont is_potted est False.
         """
         return [b for b in self.balls if not b.is_potted]
 
     def count_red(self)->int:
         """
-        Compte le nombre de billes rouge encore en jeu
+        Compte le nombre de billes rouges encore en jeu.
+
+        Returns
+        -------
+        int
+            Nombre de rouges non empochées.
         """
         return sum(1 for b in self.balls if b.points == 1 and not b.is_potted)
 
@@ -147,10 +191,12 @@ class Tables:
     def setup_balls(self) -> None:
         """
         Place toutes les billes en position de début de frame.
-        Bille blanche dans la zone D, rouges en triangle,
-        couleurs sur leurs spots.
-        """
 
+        Disposition :
+            - Bille blanche dans la zone D (légèrement en dessous de la ligne de baulk)
+            - 6 couleurs sur leurs spots réglementaires
+            - 15 rouges en triangle derrière la bille rose
+        """
         self.balls.clear()
 
         # Bille blanche
@@ -172,7 +218,13 @@ class Tables:
         self._place_reds_triangle()
 
     def _place_reds_triangle(self) -> None:
-        """Place les 15 billes rouges en triangle derrière la pink."""
+        """
+        Place les 15 billes rouges en triangle derrière la bille rose.
+
+        Le triangle est centré horizontalement sur la table.
+        Chaque rangée est décalée d'un rayon de bille vers la gauche et la droite.
+        Les rangées sont espacées de 2 rayons (billes tangentes).
+        """
 
         pink = self.get_ball_id(20)
         if pink is None:
@@ -279,7 +331,20 @@ class Tables:
 
     def _spot_is_free(self, spot: np.ndarray) -> bool:
         """
-        Vérifie si un spot est libre (aucune bille active ne le chevauche).
+        Vérifie si un spot réglementaire est libre.
+
+        Un spot est considéré libre si aucune bille active ne se trouve
+        à moins de deux rayons de sa position.
+
+        Parameters
+        ----------
+        spot : np.ndarray
+            Position [x, y] du spot à tester en cm.
+
+        Returns
+        -------
+        bool
+            True si aucune bille active ne chevauche le spot.
         """
         for b in self.get_active_balls():
             dist = float(np.linalg.norm(b.pos - spot))

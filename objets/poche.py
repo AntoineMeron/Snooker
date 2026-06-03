@@ -6,22 +6,33 @@ import numpy as np
 
 class Poche:
     """
-    Une poche de la table de snooker
+    Une poche de la table de snooker.
 
+    Attributes
+    ----------
+    position_id : str
+        Identifiant de la poche ('top_left', 'top_mid', 'top_right',
+        'bot_left', 'bot_mid', 'bot_right').
+    pos : np.ndarray
+        Position [x, y] du centre de la poche en cm.
+    rayon : float
+        Rayon de la poche en cm (4.0 pour les poches du milieu, 4.5 pour les coins).
     """
 
     def __init__(self, position_id:str,x:float,y:float,rayon:float)->None:
         """
-        Initialisation de la poche
+        Initialise une poche de la table.
 
         Parameters
         ----------
         position_id : str
             Identifiant de la poche.
         x : float
-            Position X du centre.
+            Position X du centre en cm.
         y : float
-            Position Y du centre.
+            Position Y du centre en cm.
+        rayon : float
+            Rayon de la poche en cm.
         """
         self.position_id = position_id
         self.pos = np.array([x,y], dtype=float)

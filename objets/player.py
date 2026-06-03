@@ -20,6 +20,17 @@ class Player:
     """
 
     def __init__(self, name: str, is_ai: bool = False) -> None:
+        """
+        Initialise un joueur de snooker.
+
+        Parameters
+        ----------
+        name : str
+            Nom du joueur.
+        is_ai : bool
+            True si le joueur est contrôlé par l'ordinateur. False par défaut.
+        """
+
         self.name = name
         self.score = 0
         self.current_break = 0
@@ -61,4 +72,13 @@ class Player:
         }
 
     def __repr__(self) -> str:
+        """
+        Représentation officielle du joueur sous forme de chaîne de caractères.
+        Affiche le nom, le score total et le break en cours.
+
+        Returns
+        -------
+        str
+            Chaîne décrivant l'état du joueur.
+        """
         return f"Player(name='{self.name}', score={self.score}, break={self.current_break})"

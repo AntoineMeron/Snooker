@@ -177,6 +177,8 @@ class GameController:
                 # Si la blanche a été empochée, on la replace dans le D  ← ajout
                 if white_potted:
                     self.state = 'placing'
+                    pos = self.table.get_valid_baulk_position()
+                    self.place_white_ball(pos[0], pos[1])
 
             else:
                 for ball in self._potted_this_shot:

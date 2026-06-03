@@ -9,6 +9,22 @@ class Ball:
     Une bille de snooker
     """
     def __init__(self, x:float, y:float, color:str, points:int, ball_id: int)->None:
+        """
+        Initialise une bille de snooker.
+
+        Parameters
+        ----------
+        x : float
+            Position X initiale en cm.
+        y : float
+            Position Y initiale en cm.
+        color : str
+            Couleur de la bille ('white', 'red', 'yellow', etc.).
+        points : int
+            Valeur en points de la bille (0 pour la blanche, 1 pour les rouges, 2-7 pour les couleurs).
+        ball_id : int
+            Identifiant unique de la bille (0 = blanche, 1-15 = rouges, 16-21 = couleurs).
+        """
         self.pos = np.array([x, y], dtype=float)
         self.color = color
         #self.speed = speed pas utile il me semble car on a déjà le vecteur vitesse
@@ -46,7 +62,13 @@ class Ball:
 
     def __repr__(self) -> str:
         """
-        Méthode spéciale qui définit la représentation officielle d’un objet sous forme de chaîne de caractères.
+        Représentation officielle de la bille sous forme de chaîne de caractères.
+        Affiche l'identifiant, la couleur, la position, la vitesse et l'état d'empochage.
+
+        Returns
+        -------
+        str
+            Chaîne décrivant l'état complet de la bille.
         """
         return (
             f"Ball(id={self.id}, color='{self.color}', "
