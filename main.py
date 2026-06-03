@@ -143,33 +143,51 @@
 #     main()
 
 import sys
-from PyQt5.QtWidgets import QApplication, QInputDialog
+from PyQt5.QtWidgets import QApplication, QInputDialog, QMessageBox
 from IHM.main_window import MainWindow
 
 def main():
     app = QApplication(sys.argv)
+
     # Demande le nom du joueur 1
-    name1, ok1 = QInputDialog.getText(
-        None,
-        "Snooker",
-        "Nom du joueur 1 :"
-    )
+    name1, ok1 = QInputDialog.getText(None, "Snooker", "Nom du joueur 1 :")
     if not ok1 or not name1.strip():
         name1 = "Joueur 1"
 
-    # Demande le nom du joueur 2
-    name2, ok2 = QInputDialog.getText(
+    # Demande le mode de jeu
+    mode, ok_mode = QInputDialog.getItem(
         None,
         "Snooker",
-        "Nom du joueur 2 :"
+        "Mode de jeu :",
+        ["2 joueurs humains", "Joueur vs IA"],
+        0,       # index sélectionné par défaut
+        False    # pas éditable librement
     )
-    if not ok2 or not name2.strip():
-        name2 = "Joueur 2"
-    window = MainWindow(name1,name2)
+    if not ok_mode:
+        mode = "2 joueurs humains"
+
+    if mode == "2 joueurs humains":
+        # Demande le nom du joueur 2 seulement si humain
+        name2, ok2 = QInputDialog.getText(None, "Snooker", "Nom du joueur 2 :")
+        if not ok2 or not name2.strip():
+            name2 = "Joueur 2"
+        window = MainWindow(name1, name2, ai=False)
+    else:
+        # Demande le niveau de l'IA
+        difficulty, ok_diff = QInputDialog.getItem(
+            None,
+            "Snooker",
+            "Niveau de l'IA :",
+            ["easy", "medium", "hard"],
+            1,      # medium par défaut
+            False
+        )
+        if not ok_diff:
+            difficulty = "medium"
+        window = MainWindow(name1, "IA", ai=True, difficulty=difficulty)
+
     window.show()
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()
-
-#gc = GameController("Alice", "IA", ai=True)

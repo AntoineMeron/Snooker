@@ -45,7 +45,8 @@ class GameState:
         scores_snapshot: dict = None,
         foul_flag: bool = False,
         phase: str = 'aiming',
-        next_ball_type:str='red'
+        next_ball_type:str='red',
+        pockets_snapshot: list = None,
     ) -> None:
         """
         Initialise un état de jeu.
@@ -72,6 +73,7 @@ class GameState:
         self.foul_flag: bool = foul_flag
         self.phase: str = phase
         self.next_ball_type= next_ball_type
+        self.pockets_snapshot = pockets_snapshot if pockets_snapshot is not None else []
 
     # ------------------------------------------------------------------
     # Création d'un snapshot depuis GameController
@@ -113,6 +115,11 @@ class GameState:
             for p in gc.players
         }
 
+        pockets_snapshot = [
+            {"x": p.pos[0], "y": p.pos[1], "rayon": p.rayon}
+            for p in gc.table.poches
+        ]
+
         return GameState(
             current_player_idx=gc.current_player_index,
             frame_number=1,  # à incrémenter depuis GameController si besoin
@@ -120,7 +127,8 @@ class GameState:
             scores_snapshot=scores_snapshot,
             foul_flag=False,
             phase=gc.state,
-            next_ball_type=gc.next_ball_type,
+            next_ball_type=gc.rules.next_ball_type,
+            pockets_snapshot=pockets_snapshot,
         )
 
     # ------------------------------------------------------------------
@@ -144,6 +152,7 @@ class GameState:
             "foul_flag":          self.foul_flag,
             "phase":              self.phase,
             "next_ball_type":     self.next_ball_type,
+            "pockets_snapshot": self.pockets_snapshot,
         }
 
     @staticmethod
@@ -169,6 +178,7 @@ class GameState:
             foul_flag=d["foul_flag"],
             phase=d["phase"],
             next_ball_type=d.get["next_ball_type","red"],
+            pockets_snapshot=d.get("pockets_snapshot", []),
         )
 
     # ------------------------------------------------------------------
