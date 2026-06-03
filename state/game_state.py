@@ -28,13 +28,20 @@ class GameState:
     frame_number : int
         Numéro de la frame en cours (commence à 1).
     balls_snapshot : list[dict]
-        Liste des états de chaque bille (position, vitesse, empochée).
+        Liste des états de chaque bille : position, vitesse,
+        couleur, valeur, identifiant et état empoché.
     scores_snapshot : dict
-        Scores des deux joueurs au moment du snapshot.
+        Scores et breaks des deux joueurs au moment du snapshot.
     foul_flag : bool
         True si une faute vient d'être commise.
     phase : str
-        Phase du jeu : 'aiming' ou 'rolling'.
+        Phase du jeu : 'aiming', 'rolling' ou 'placing'.
+    next_ball_type : str
+        Type de bille attendu par les règles au prochain tir :
+        'red' ou 'colour'.
+    pockets_snapshot : list[dict]
+        Liste des états des poches de la table, contenant leur
+        position et leur rayon.
     """
 
     def __init__(
@@ -45,7 +52,7 @@ class GameState:
         scores_snapshot: dict = None,
         foul_flag: bool = False,
         phase: str = 'aiming',
-        next_ball_type:str='red',
+        next_ball_type: str = 'red',
         pockets_snapshot: list = None,
     ) -> None:
         """
@@ -57,14 +64,29 @@ class GameState:
             Index du joueur courant.
         frame_number : int
             Numéro de la frame en cours.
-        balls_snapshot : list[dict]
-            Snapshot des billes. Si None, initialisé à liste vide.
-        scores_snapshot : dict
-            Snapshot des scores. Si None, initialisé à dict vide.
+        balls_snapshot : list[dict], optional
+            Snapshot des billes. Chaque dictionnaire contient les données
+            nécessaires pour reconstruire une bille : identifiant, position,
+            vitesse, couleur, valeur et état empoché. Si None, une liste
+            vide est créée.
+        scores_snapshot : dict, optional
+            Snapshot des scores et des breaks des joueurs. Si None,
+            un dictionnaire vide est créé.
         foul_flag : bool
-            True si une faute vient d'être commise.
+            True si une faute vient d'être commise, False sinon.
         phase : str
-            Phase courante : 'aiming' ou 'rolling'.
+            Phase courante du jeu, par exemple 'aiming', 'rolling'
+            ou 'placing'.
+        next_ball_type : str
+            Type de bille attendu par les règles au prochain tir :
+            'red' ou 'colour'.
+        pockets_snapshot : list[dict], optional
+            Snapshot des poches de la table, contenant leur position
+            et leur rayon. Si None, une liste vide est créée.
+
+        Returns
+        -------
+        None
         """
         self.current_player_idx: int = current_player_idx
         self.frame_number: int = frame_number
@@ -72,7 +94,7 @@ class GameState:
         self.scores_snapshot: dict = scores_snapshot if scores_snapshot is not None else {}
         self.foul_flag: bool = foul_flag
         self.phase: str = phase
-        self.next_ball_type= next_ball_type
+        self.next_ball_type = next_ball_type
         self.pockets_snapshot = pockets_snapshot if pockets_snapshot is not None else []
 
     # ------------------------------------------------------------------
@@ -84,7 +106,10 @@ class GameState:
         """
         Crée un GameState à partir de l'état actuel du GameController.
 
-        À appeler depuis GameController pour prendre une photo de la partie.
+        À appeler depuis GameController pour prendre une photo complète
+        de la partie. Le snapshot contient les billes, les scores, la phase
+        de jeu, le joueur courant, le type de bille attendu par les règles
+        et les positions des poches.
 
         Parameters
         ----------
@@ -137,7 +162,11 @@ class GameState:
 
     def to_dict(self) -> dict:
         """
-        Convertit le GameState en dictionnaire sérialisable (JSON).
+        Convertit le GameState en dictionnaire sérialisable.
+
+        Cette méthode est utilisée pour sauvegarder la partie au format JSON.
+        Le dictionnaire retourné contient toutes les informations nécessaires
+        pour reconstruire l'état de la partie.
 
         Returns
         -------
@@ -158,17 +187,20 @@ class GameState:
     @staticmethod
     def from_dict(d: dict) -> "GameState":
         """
-        Reconstruit un GameState depuis un dictionnaire (ex: chargé depuis JSON).
+        Reconstruit un GameState depuis un dictionnaire.
+
+        Cette méthode est utilisée lors du chargement d'une partie sauvegardée.
+        Elle effectue l'opération inverse de to_dict().
 
         Parameters
         ----------
         d : dict
-            Dictionnaire produit par to_dict().
+            Dictionnaire produit par to_dict() ou chargé depuis un fichier JSON.
 
         Returns
         -------
         GameState
-            L'état reconstruit.
+            L'état de jeu reconstruit à partir du dictionnaire.
         """
         return GameState(
             current_player_idx=d["current_player_idx"],
@@ -177,7 +209,7 @@ class GameState:
             scores_snapshot=d["scores_snapshot"],
             foul_flag=d["foul_flag"],
             phase=d["phase"],
-            next_ball_type=d.get["next_ball_type","red"],
+            next_ball_type=d.get["next_ball_type", "red"],
             pockets_snapshot=d.get("pockets_snapshot", []),
         )
 
@@ -190,7 +222,9 @@ class GameState:
         Retourne une copie profonde du GameState.
 
         Utilisé par AIPlayer pour simuler des tirs hypothétiques
-        sans modifier l'état réel de la partie.
+        sans modifier l'état réel de la partie. Les listes et dictionnaires
+        imbriqués sont copiés afin que le clone soit indépendant de l'objet
+        original.
 
         Returns
         -------
@@ -209,18 +243,30 @@ class GameState:
         """
         Indique si la partie est terminée.
 
-        La partie est terminée quand toutes les billes
-        (sauf la blanche) sont empochées.
+        La partie est considérée comme terminée lorsque toutes les billes
+        sauf la bille blanche sont empochées.
 
         Returns
         -------
         bool
-            True si la frame est terminée.
+            True si la frame est terminée, False sinon.
         """
         non_white = [b for b in self.balls_snapshot if b["id"] != 0]
         return all(b["is_potted"] for b in non_white)
 
     def __repr__(self) -> str:
+        """
+        Retourne une représentation textuelle synthétique du GameState.
+
+        Cette représentation est utile pour le débogage, car elle affiche
+        le numéro de frame, le joueur courant, la phase du jeu, le nombre
+        de billes encore actives et l'état de faute.
+
+        Returns
+        -------
+        str
+            Représentation lisible de l'état du jeu.
+        """
         active = sum(1 for b in self.balls_snapshot if not b["is_potted"] and b["id"] != 0)
         return (
             f"GameState(frame={self.frame_number}, "

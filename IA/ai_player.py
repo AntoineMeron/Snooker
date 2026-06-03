@@ -40,7 +40,7 @@ class AIPlayer(Player):
     """
 
     _RANDOMNESS   = {'easy': 8.0,  'medium': 2.0,  'hard': 0.5}
-    _N_CANDIDATES = {'easy':  40,  'medium': 200,  'hard': 200}
+    _N_CANDIDATES = {'easy':  40,  'medium': 200,  'hard': 300}
 
     def __init__(self, name: str, difficulty: str = 'medium') -> None:
         super().__init__(name=name, is_ai=True)
@@ -50,43 +50,6 @@ class AIPlayer(Player):
     # ------------------------------------------------------------------
     # API publique
     # ------------------------------------------------------------------
-
-    # def choose_shot(self, state: GameState) -> ShotConfig:
-    #     """
-    #     Choisit le meilleur tir depuis l'état donné.
-    #
-    #     Parameters
-    #     ----------
-    #     state : GameState
-    #         Photo de la partie au moment du choix.
-    #
-    #     Returns
-    #     -------
-    #     ShotConfig
-    #         Le tir choisi avec bruit ajouté selon le niveau.
-    #     """
-    #     candidates = self._get_candidate_shots(state)
-    #
-    #     best_shot = None
-    #     best_score = -float('inf')
-    #
-    #     for shot in candidates:
-    #         score = self._evaluate_shot(shot, state)
-    #         if score > best_score:
-    #             best_score = score
-    #             best_shot = shot
-    #
-    #     if best_shot is None:
-    #         best_shot = ShotConfig(angle_deg=0.0, force=30.0, target_ball_id=-1)
-    #
-    #     # Ajout du bruit selon le niveau de difficulté
-    #     noisy_angle = (best_shot.angle_deg + random.gauss(0, self.randomness)) % 360
-    #
-    #     return ShotConfig(
-    #         angle_deg=noisy_angle,
-    #         force=best_shot.force,
-    #         target_ball_id=best_shot.target_ball_id,
-    #     )
 
     def choose_shot(self, state: GameState) -> ShotConfig:
         candidates = self._get_candidate_shots(state)
@@ -124,89 +87,6 @@ class AIPlayer(Player):
     # ------------------------------------------------------------------
     # Génération des tirs candidats
     # ------------------------------------------------------------------
-
-    # def _get_candidate_shots(self, state: GameState) -> list[ShotConfig]:
-    #     """
-    #     Génère des tirs candidats en ciblant uniquement les billes
-    #     valides selon next_ball_type (rouge ou couleur).
-    #
-    #     Parameters
-    #     ----------
-    #     state : GameState
-    #         État actuel avec next_ball_type.
-    #
-    #     Returns
-    #     -------
-    #     list[ShotConfig]
-    #         Tirs candidats à évaluer.
-    #     """
-    #     candidates = []
-    #     n = self._N_CANDIDATES[self.difficulty]
-    #
-    #     white = next((b for b in state.balls_snapshot if b["id"] == 0), None)
-    #     if white is None:
-    #         return candidates
-    #
-    #     white_pos = np.array([white["x"], white["y"]])
-    #
-    #     next_type = state.next_ball_type
-    #     if next_type == 'red':
-    #         targets = [
-    #             b for b in state.balls_snapshot
-    #             if not b["is_potted"] and b["id"] != 0 and b["points"] == 1
-    #         ]
-    #     else:
-    #         targets = [
-    #             b for b in state.balls_snapshot
-    #             if not b["is_potted"] and b["id"] != 0 and b["points"] > 1
-    #         ]
-    #
-    #     if not targets:
-    #         targets = [
-    #             b for b in state.balls_snapshot
-    #             if not b["is_potted"] and b["id"] != 0
-    #         ]
-    #
-    #     for target in targets:
-    #         target_pos = np.array([target["x"], target["y"]])
-    #         delta = target_pos - white_pos
-    #         dist = float(np.linalg.norm(delta))
-    #
-    #         if dist < 0.1:
-    #             continue
-    #
-    #         # Angle exact pour toucher la bille cible
-    #         exact_angle = math.degrees(math.atan2(delta[1], delta[0])) % 360
-    #
-    #         n_per_target = max(6, n // max(1, len(targets)))
-    #
-    #         # ← angle_spread réduit : on reste proche de l'angle exact
-    #         angle_spread = 10
-    #
-    #         for _ in range(n_per_target):
-    #             angle_offset = random.uniform(-angle_spread, angle_spread)
-    #             angle = (exact_angle + angle_offset) % 360
-    #
-    #             # Force proportionnelle à la distance, mieux calibrée
-    #             base_force = min(90, max(30, dist * 0.4))
-    #             force = max(20, min(100, base_force + random.uniform(-5, 5)))
-    #
-    #             candidates.append(ShotConfig(
-    #                 angle_deg=angle,
-    #                 force=force,
-    #                 target_ball_id=target["id"],
-    #             ))
-    #
-    #         # On ajoute aussi l'angle exact avec plusieurs forces
-    #         # pour être sûr qu'au moins un tir parfait est testé
-    #         for force in [30, 50, 70, 90]:
-    #             candidates.append(ShotConfig(
-    #                 angle_deg=exact_angle,
-    #                 force=force,
-    #                 target_ball_id=target["id"],
-    #             ))
-    #
-    #     return candidates
 
     def _get_candidate_shots(self, state: GameState) -> list[ShotConfig]:
         candidates = []
