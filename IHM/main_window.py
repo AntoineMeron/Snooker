@@ -113,7 +113,7 @@ class MainWindow(QMainWindow):
         )
 
         # Désactiver tirer si billes en mouvement
-        self.ui.btn_tirer.setEnabled(self.gc.state == 'aiming')
+        #self.ui.btn_tirer.setEnabled(self.gc.state == 'aiming')
 
     def _update_label_angle(self, value: int) -> None:
         """Met à jour le label angle quand le slider change."""

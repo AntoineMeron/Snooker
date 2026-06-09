@@ -129,7 +129,8 @@ class TableView:
         pen_white = QPen(QColor("white"), 1)
 
         # Position Y de la ligne de baulk en pixels
-        baulk_py = self.height_px - (self.table.baulk_line_y * self.scale_y)
+        #baulk_py = self.height_px - (self.table.baulk_line_y * self.scale_y)
+        baulk_py = self.height_px - self.BORDER - (self.table.baulk_line_y * self.scale_y)
 
         # Centre du demi-cercle en pixels
         cx, cy = self.to_px(

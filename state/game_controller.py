@@ -302,6 +302,7 @@ class GameController:
         # On applique le GameState sur le GameController
         self.current_player_index = state.current_player_idx
         self.state = state.phase
+        self.rules.next_ball_type = state.next_ball_type
 
         for p_name, p_data in state.scores_snapshot.items():
             player = next(p for p in self.players if p.name == p_name)

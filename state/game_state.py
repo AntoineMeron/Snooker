@@ -209,7 +209,7 @@ class GameState:
             scores_snapshot=d["scores_snapshot"],
             foul_flag=d["foul_flag"],
             phase=d["phase"],
-            next_ball_type=d.get["next_ball_type", "red"],
+            next_ball_type=d.get("next_ball_type", "red"),
             pockets_snapshot=d.get("pockets_snapshot", []),
         )
 
