@@ -167,7 +167,7 @@ class TableView:
         """Dessine les 6 poches en noir."""
         for pocket in self.table.poches:
             px, py = self.to_px(pocket.pos[0], pocket.pos[1])
-            r = pocket.rayon * self.scale_avg *1.5
+            r = pocket.rayon * self.scale_avg *1.4
             self.scene.addEllipse(
                 px - r, py - r, r * 2, r * 2,
                 QPen(Qt.black),

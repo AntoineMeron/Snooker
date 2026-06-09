@@ -30,7 +30,7 @@ class Ball:
         #self.speed = speed pas utile il me semble car on a déjà le vecteur vitesse
         self.points = points
         self.id = ball_id
-        self.rayon = 2.625 #en cm
+        self.rayon = 3.7    #en cm
         self.vit  = np.zeros(2, dtype=float)
         self.is_potted = False #est-ce que la bille est empochée
 

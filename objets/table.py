@@ -88,8 +88,8 @@ class Tables:
             Liste ordonnée des 6 poches.
         """
         l,L = self.longueur, self.largeur
-        mid_rayon = 4.0 # les poches du milieu un peu plus petites
-        cor_rayon = 4.5
+        mid_rayon = 6 # les poches du milieu un peu plus petites
+        cor_rayon = 6.5
         return [
             Poche("top_left", 0, 0, cor_rayon),
             Poche("top_mid",0, l/2, mid_rayon),
