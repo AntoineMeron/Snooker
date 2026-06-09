@@ -2,7 +2,8 @@
 
 Simulation complète d'un jeu de snooker en Python avec interface graphique Qt,
 moteur physique vectoriel, intelligence artificielle et sauvegarde de partie.
-
+Lien du dépôt GitHub :
+https://github.com/AntoineMeron/Snooker/
 ---
 
 ## Table des matières
