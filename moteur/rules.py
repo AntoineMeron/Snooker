@@ -99,9 +99,23 @@ class Rules:
             player.add_points(ball.points)
             if self.reds_on_table > 0:
                 self.next_ball_type = 'red'  # il reste des rouges : on revient aux rouges
-                # La couleur est replacée sur son spot tant qu'il reste des rouges
-                table.replace_colour(ball)
             # sinon on reste sur 'colour' pour empocher les couleurs dans l'ordre
+
+    def replace_potted_colours(self, potted_balls: list[Ball], table) -> None:
+        """
+        Replace sur la table les billes de couleur empochées tant qu'il reste
+        des rouges en jeu.
+
+        Cette méthode est appelée après chaque tir, que le tir soit valide
+        ou fautif. Les rouges ne sont pas replacées et la blanche est gérée
+        séparément.
+        """
+        if self.reds_on_table <= 0:
+            return
+
+        for ball in potted_balls:
+            if ball.id != 0 and ball.points > 1:
+                table.replace_colour(ball)
 
     def detect_foul(self, potted_balls: list[Ball],
                     white_potted: bool) -> tuple[str, int]:

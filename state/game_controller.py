@@ -228,6 +228,8 @@ class GameController:
             white_potted = any(b.id == 0 for b in self._potted_this_shot)
             foul, penalite = self.rules.detect_foul(self._potted_this_shot, white_potted)
 
+            self.rules.replace_potted_colours(self._potted_this_shot, self.table)
+
             if foul:
                 print(foul)
                 self.rules.apply_foul(foul, penalite, self.players, self.current_player_index)
