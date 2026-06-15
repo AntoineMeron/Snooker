@@ -200,7 +200,7 @@ class Tables:
         self.balls.clear()
 
         # Bille blanche
-        self.balls.append(Ball(self.largeur/2,self.baulk_line_y - 10,"white",0,0))
+        self.balls.append(Ball(self.largeur/2,self.baulk_line_y - 20,"white",0,0))
 
         # Couleurs sur leurs spots réglementaires
         spots = [
