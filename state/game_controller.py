@@ -201,7 +201,12 @@ class GameController:
         # Si l'IA doit replacer la blanche dans le D, elle choisit
         # automatiquement la meilleure position libre
         if self.state == 'placing' and self.current_player().is_ai:
-            pos = self.table.get_valid_baulk_position()
+            #pos = self.table.get_valid_baulk_position()
+            pos = np.array([
+                self.table.largeur / 2,
+                self.table.baulk_line_y - 20
+            ])
+
             self.place_white_ball(pos[0], pos[1])
             # place_white_ball repasse state = 'aiming' si la position est valide
             return
@@ -238,8 +243,17 @@ class GameController:
                 # Si la blanche a été empochée, on la replace dans le D  ← ajout
                 if white_potted:
                     self.state = 'placing'
-                    pos = self.table.get_valid_baulk_position()
+
+                    pos = np.array([
+                        self.table.largeur / 2,
+                        self.table.baulk_line_y - 20
+                    ])
+
                     self.place_white_ball(pos[0], pos[1])
+                # if white_potted:
+                #     self.state = 'placing'
+                #     pos = self.table.get_valid_baulk_position()
+                #     self.place_white_ball(pos[0], pos[1])
 
             else:
                 for ball in self._potted_this_shot:

@@ -6,6 +6,7 @@ import unittest
 from objets.ball import Ball
 from objets.player import Player
 from moteur.rules import Rules
+from objets.table import Tables
 
 
 class TestRules(unittest.TestCase):
@@ -18,6 +19,7 @@ class TestRules(unittest.TestCase):
         self.rouge = Ball(x=0, y=0, color="red", points=1, ball_id=1)
         self.noire = Ball(x=0, y=0, color="black", points=7, ball_id=7)
         self.blanche = Ball(x=0, y=0, color="white", points=0, ball_id=0)
+        self.tables = Tables()
 
     # ------------------------------------------------------------------
     # Tests score_potted
@@ -25,7 +27,7 @@ class TestRules(unittest.TestCase):
 
     def test_score_rouge(self):
         """Empocher une rouge doit ajouter 1 point et passer à 'colour'."""
-        self.rules.score_potted(self.rouge, self.players, current_idx=0)
+        self.rules.score_potted(self.rouge, self.players, current_idx=0,table=self.tables)
         self.assertEqual(self.players[0].score, 1)
         self.assertEqual(self.rules.next_ball_type, 'colour')
         self.assertEqual(self.rules.reds_on_table, 14)
@@ -33,20 +35,20 @@ class TestRules(unittest.TestCase):
     def test_score_couleur(self):
         """Empocher une couleur doit ajouter ses points et repasser à 'red'."""
         self.rules.next_ball_type = 'colour'
-        self.rules.score_potted(self.noire, self.players, current_idx=0)
+        self.rules.score_potted(self.noire, self.players, current_idx=0,table=self.tables)
         self.assertEqual(self.players[0].score, 7)
         self.assertEqual(self.rules.next_ball_type, 'red')
 
     def test_score_blanche_ignoree(self):
         """Empocher la blanche ne doit pas ajouter de points."""
-        self.rules.score_potted(self.blanche, self.players, current_idx=0)
+        self.rules.score_potted(self.blanche, self.players, current_idx=0,table=self.tables)
         self.assertEqual(self.players[0].score, 0)
 
     def test_score_couleur_fin_de_frame(self):
         """Sans rouges restantes, next_ball_type doit rester sur 'colour'."""
         self.rules.reds_on_table = 0
         self.rules.next_ball_type = 'colour'
-        self.rules.score_potted(self.noire, self.players, current_idx=0)
+        self.rules.score_potted(self.noire, self.players, current_idx=0,table=self.tables)
         self.assertEqual(self.rules.next_ball_type, 'colour')
 
     # ------------------------------------------------------------------

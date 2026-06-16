@@ -20,7 +20,7 @@ class TestBall(unittest.TestCase):
         self.assertEqual(ball.pos[0], 10)
         self.assertEqual(ball.pos[1], 20)
         self.assertFalse(ball.is_potted)
-        self.assertEqual(ball.rayon, 2.625)
+        self.assertEqual(ball.rayon, 3.7)
 
     def test_is_moving_false(self):
         """Une bille à vitesse nulle ne doit pas être en mouvement."""

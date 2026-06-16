@@ -179,7 +179,7 @@ class GameState:
             "balls_snapshot":     self.balls_snapshot,
             "scores_snapshot":    self.scores_snapshot,
             "foul_flag":          self.foul_flag,
-            "phase":              self.phase,
+            "phase":              self.phase, #rolling ou aiming
             "next_ball_type":     self.next_ball_type,
             "pockets_snapshot": self.pockets_snapshot,
         }

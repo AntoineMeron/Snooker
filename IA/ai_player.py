@@ -39,7 +39,7 @@ class AIPlayer(Player):
        Plus élevé = moins précis. Calculé depuis difficulty.
     """
 
-    _RANDOMNESS   = {'easy': 8.0,  'medium': 2.0,  'hard': 0.5}
+    _RANDOMNESS   = {'easy': 4.0,  'medium': 2.0,  'hard': 0.5}
     _N_CANDIDATES = {'easy':  40,  'medium': 200,  'hard': 300}
 
     def __init__(self, name: str, difficulty: str = 'medium') -> None:
